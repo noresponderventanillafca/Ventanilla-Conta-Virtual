@@ -11,7 +11,7 @@ from flask import Blueprint, jsonify, request, send_file, current_app
 from flask_login import login_required, current_user
 
 from ..extensions import db
-from ..models import TipoDocumento, MomentoPago, Tramite, Rol, CuentaInstitucional
+from ..models import TipoDocumento, MomentoPago, Tramite, Rol, CuentaInstitucional, Programa
 from ..seguridad import rol_requerido
 from ..dominio.servicios import ErrorDominio
 from ..almacenamiento import guardar
@@ -233,5 +233,36 @@ def probar_correo():
             "error": "No hay servidor de correo configurado. Mientras tanto, los "
                      "avisos se escriben en la consola del servidor."
         }), 400
-    N.prueba(current_user.correo)
-    return jsonify({"mensaje": f"Enviamos una prueba a {current_user.correo}."})
+    motivo = N.prueba(current_user.correo)
+    if motivo:
+        return jsonify({"error": motivo}), 502
+    return jsonify({"mensaje": f"Enviamos una prueba a {current_user.correo}. "
+                               "Revisa la bandeja y también el correo no deseado."})
+
+
+# --------------------------------------------------------------------------
+# Vigencia del padrón
+# --------------------------------------------------------------------------
+
+@bp.get("/vigencia")
+@rol_requerido(Rol.COORDINADORA)
+def ver_vigencia():
+    return jsonify({"anios_vigencia": current_user.programa.anios_vigencia})
+
+
+@bp.put("/vigencia")
+@rol_requerido(Rol.COORDINADORA)
+def guardar_vigencia():
+    """Cuántos años puede un alumno usar la ventanilla. Pasado ese tiempo pierde
+    el acceso; lo que necesite después se atiende por correo."""
+    try:
+        anios = int((request.get_json() or {}).get("anios_vigencia"))
+    except (TypeError, ValueError):
+        raise ErrorDominio("Indica un número de años.")
+    if not 1 <= anios <= 20:
+        raise ErrorDominio("La vigencia debe estar entre 1 y 20 años.")
+
+    programa = db.session.get(Programa, current_user.programa_id)
+    programa.anios_vigencia = anios
+    db.session.commit()
+    return jsonify({"anios_vigencia": anios})

@@ -23,14 +23,58 @@ from .extensions import db
 from .models import Usuario, Rol
 
 
+def _conectar(cfg):
+    """El puerto decide el protocolo.
+
+    465 usa TLS desde el primer byte (SMTP_SSL); 587 empieza en claro y sube a
+    TLS con STARTTLS. Si se mezclan, la conexión se queda esperando un saludo
+    que nunca llega y termina en timeout, que es lo que parece un problema de
+    red sin serlo.
+    """
+    puerto = int(cfg["SMTP_PUERTO"])
+    tiempo = int(cfg.get("SMTP_TIMEOUT", 20))
+    if puerto == 465:
+        return smtplib.SMTP_SSL(cfg["SMTP_HOST"], puerto, timeout=tiempo)
+    servidor = smtplib.SMTP(cfg["SMTP_HOST"], puerto, timeout=tiempo)
+    servidor.starttls()
+    return servidor
+
+
+def _explicar(error, cfg):
+    """Traduce el error a algo accionable. Un traceback de smtplib no le dice a
+    nadie si el problema es la contraseña, el puerto o la red."""
+    host, puerto = cfg.get("SMTP_HOST"), cfg.get("SMTP_PUERTO")
+
+    if isinstance(error, (TimeoutError, OSError)) and not isinstance(error, smtplib.SMTPException):
+        pista = ""
+        if str(puerto) == "465":
+            pista = " El puerto 465 requiere SSL directo; si tu servidor usa STARTTLS, prueba el 587."
+        elif str(puerto) == "587":
+            pista = " Prueba el puerto 465, que a veces sí pasa cuando el 587 está bloqueado."
+        return (f"No se pudo conectar con {host}:{puerto}. La red bloqueó la salida o el "
+                f"puerto no corresponde al servidor.{pista} Compruébalo con: "
+                f"Test-NetConnection {host} -Port {puerto}")
+
+    if isinstance(error, smtplib.SMTPAuthenticationError):
+        return ("El servidor rechazó el usuario o la contraseña. En Gmail hace falta una "
+                "contraseña de aplicación, no la contraseña normal de la cuenta.")
+
+    if isinstance(error, smtplib.SMTPSenderRefused):
+        return (f"El servidor no acepta enviar como {cfg.get('CORREO_REMITENTE')}. "
+                "Normalmente el remitente debe ser la misma cuenta que autenticó.")
+
+    return f"{type(error).__name__}: {error}"
+
+
 def _enviar(app, destinatarios, asunto, cuerpo):
+    """Devuelve None si salió bien, o el motivo en texto si falló."""
     with app.app_context():
         cfg = app.config
         if not cfg.get("SMTP_HOST"):
             # En desarrollo no hay SMTP: se registra para poder verificarlo
             # sin depender del correo institucional.
             app.logger.info("[correo simulado] %s -> %s\n%s", asunto, destinatarios, cuerpo)
-            return
+            return None
         try:
             msg = EmailMessage()
             msg["Subject"] = asunto
@@ -38,14 +82,16 @@ def _enviar(app, destinatarios, asunto, cuerpo):
             msg["To"] = ", ".join(destinatarios)
             msg.set_content(cuerpo)
 
-            with smtplib.SMTP(cfg["SMTP_HOST"], cfg["SMTP_PUERTO"], timeout=15) as s:
-                s.starttls()
+            with _conectar(cfg) as servidor:
                 if cfg.get("SMTP_USUARIO"):
-                    s.login(cfg["SMTP_USUARIO"], cfg["SMTP_PASSWORD"])
-                s.send_message(msg)
-        except Exception:
+                    servidor.login(cfg["SMTP_USUARIO"], cfg["SMTP_PASSWORD"])
+                servidor.send_message(msg)
+            return None
+        except Exception as error:
             # Un fallo de correo nunca debe tumbar un trámite ya guardado.
-            app.logger.exception("No se pudo enviar el correo a %s", destinatarios)
+            motivo = _explicar(error, cfg)
+            app.logger.error("No se pudo enviar el correo a %s: %s", destinatarios, motivo)
+            return motivo
 
 
 def _en_segundo_plano(destinatarios, asunto, cuerpo):
@@ -93,46 +139,71 @@ def _cuerpo(tramite, encabezado, detalle=""):
     )
 
 
-def cambio_de_etapa(tramite, etapa, autor):
-    """Al alumno siempre; al nuevo responsable solo si le toca actuar."""
-    destinos = []
-    if autor.id != tramite.alumno_id:
-        destinos.append(tramite.alumno.correo)
+def tramite_iniciado(tramite, alumno):
+    """Un correo al alumno confirmando que su solicitud quedó registrada, y uno
+    a quien le toca atenderla."""
+    etapa = _etapa_actual(tramite)
 
-    if etapa.actor in (Rol.SECRETARIA, Rol.ADMINISTRADOR) and autor.rol != etapa.actor:
-        destinos += _correos_del_rol(tramite.programa_id, etapa.actor)
-
-    destinos += _supervisores(tramite.programa_id, autor)
-
-    if etapa.actor is None:
-        asunto = f"[{tramite.folio}] Tu documento está listo"
-        encabezado = "Tu trámite concluyó y el documento ya está disponible."
-    else:
-        asunto = f"[{tramite.folio}] {etapa.nombre}"
-        encabezado = f"El trámite avanzó a: {etapa.nombre}."
-
-    _en_segundo_plano(list(dict.fromkeys(destinos)), asunto, _cuerpo(tramite, encabezado))
-
-
-def recibo_emitido(tramite, autor):
-    """El recibo va al alumno y a Secretaría al mismo tiempo: uno lo necesita
-    como comprobante de su pago, la otra para poder elaborar el documento."""
-    destinos = ([tramite.alumno.correo]
-                + _correos_del_rol(tramite.programa_id, Rol.SECRETARIA)
-                + _supervisores(tramite.programa_id, autor))
     _en_segundo_plano(
-        list(dict.fromkeys(destinos)),
-        f"[{tramite.folio}] Recibo de pago emitido",
+        [tramite.alumno.correo],
+        f"[{tramite.folio}] Recibimos tu solicitud",
         _cuerpo(
             tramite,
-            "Administración emitió el recibo del pago.",
-            "El recibo está disponible en el trámite. Secretaría ya puede "
-            "elaborar el documento.\n",
+            "Tu solicitud quedó registrada.",
+            "Te escribiremos otra vez cuando tu documento esté listo. Mientras "
+            "tanto puedes seguir el avance desde la ventanilla.\n",
+        ),
+    )
+
+    destinos = []
+    if etapa.actor in (Rol.SECRETARIA, Rol.ADMINISTRADOR):
+        destinos += _correos_del_rol(tramite.programa_id, etapa.actor)
+    destinos += _supervisores(tramite.programa_id, alumno)
+    _aviso_de_bandeja(tramite, etapa, destinos)
+
+
+def llego_a_tu_bandeja(tramite, etapa, autor):
+    """Un solo correo por persona: cuando el trámite entra a su cola.
+
+    No se avisa en cada cambio de etapa. Quien atiende no necesita enterarse de
+    lo que hacen los demás; necesita saber cuándo hay algo suyo que hacer, y un
+    correo por movimiento termina en que nadie los lee."""
+    if etapa.actor not in (Rol.SECRETARIA, Rol.ADMINISTRADOR):
+        return
+    destinos = _correos_del_rol(tramite.programa_id, etapa.actor)
+    destinos += _supervisores(tramite.programa_id, autor)
+    _aviso_de_bandeja(tramite, etapa, [d for d in destinos if d != autor.correo])
+
+
+def _aviso_de_bandeja(tramite, etapa, destinos):
+    _en_segundo_plano(
+        list(dict.fromkeys(destinos)),
+        f"[{tramite.folio}] Nuevo trámite por atender",
+        _cuerpo(
+            tramite,
+            f"Hay un trámite esperando en {etapa.actor.value if etapa.actor else 'la ventanilla'}: "
+            f"{etapa.nombre}.",
+        ),
+    )
+
+
+def tramite_concluido(tramite, autor):
+    """El segundo y último correo del alumno."""
+    _en_segundo_plano(
+        [tramite.alumno.correo] + _supervisores(tramite.programa_id, autor),
+        f"[{tramite.folio}] Tu documento está listo",
+        _cuerpo(
+            tramite,
+            "Tu trámite concluyó.",
+            "Descarga tu documento, y el recibo de tu pago si lo hubo, desde la "
+            "ventanilla.\n",
         ),
     )
 
 
 def pago_rechazado(tramite, motivo, autor=None):
+    """Excepción a la regla de dos correos: si no se le avisa, el alumno se
+    queda esperando un documento que nunca va a llegar."""
     _en_segundo_plano(
         [tramite.alumno.correo] + _supervisores(tramite.programa_id, autor),
         f"[{tramite.folio}] Tu pago necesita corrección",
@@ -141,19 +212,25 @@ def pago_rechazado(tramite, motivo, autor=None):
 
 
 def nuevo_comentario(tramite, autor, etapa):
-    """A los participantes activos, menos a quien escribió."""
-    destinos = []
-    if autor.id != tramite.alumno_id:
-        destinos.append(tramite.alumno.correo)
-    if etapa.actor in (Rol.SECRETARIA, Rol.ADMINISTRADOR) and autor.rol != etapa.actor:
-        destinos += _correos_del_rol(tramite.programa_id, etapa.actor)
-    destinos += _supervisores(tramite.programa_id, autor)
+    """Solo se avisa al alumno, y solo si comentó alguien más.
+
+    El personal ve los comentarios al abrir el trámite que ya tiene en su cola;
+    el alumno no está pendiente del sistema, así que a él sí hay que buscarlo."""
+    if autor.id == tramite.alumno_id:
+        destinos = _supervisores(tramite.programa_id, autor)
+    else:
+        destinos = [tramite.alumno.correo] + _supervisores(tramite.programa_id, autor)
 
     _en_segundo_plano(
         list(dict.fromkeys(destinos)),
         f"[{tramite.folio}] Nuevo comentario",
-        _cuerpo(tramite, f"{autor.nombre} comentó en el trámite."),
+        _cuerpo(tramite, f"{autor.nombre} comentó en tu trámite."),
     )
+
+
+def _etapa_actual(tramite):
+    from .dominio import etapas as E
+    return E.etapa_actual(tramite)
 
 
 def enlace_de_activacion(correo, token):
@@ -180,9 +257,13 @@ def enlace_de_restablecimiento(correo, token):
 
 
 def prueba(correo):
-    """Envío de prueba, para verificar la configuración del servidor de correo
-    sin tener que provocar un trámite real."""
-    _en_segundo_plano(
+    """Envío de prueba SÍNCRONO: a diferencia de las notificaciones, aquí sí
+    interesa esperar el resultado. Un botón que siempre dice «enviado» mientras
+    el error solo aparece en la consola del servidor no sirve para configurar
+    nada. Devuelve None si salió bien, o el motivo del fallo."""
+    from flask import current_app
+    return _enviar(
+        current_app._get_current_object(),
         [correo],
         "Prueba de la Ventanilla Virtual",
         "Si recibiste este mensaje, el envío de correo está bien configurado.\n\n"

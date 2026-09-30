@@ -65,7 +65,7 @@ def confirmar_activacion():
         return jsonify({"error": "El enlace no es válido."}), 400
 
     registro = PadronAlumno.query.filter_by(matricula=carga["matricula"]).first()
-    if not registro or registro.activado:
+    if not registro or registro.activado or registro.dado_de_baja:
         return jsonify({"error": "Esta cuenta ya fue activada."}), 400
 
     usuario = Usuario(

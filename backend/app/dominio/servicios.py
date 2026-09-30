@@ -132,13 +132,14 @@ def registrar_pago(tramite, datos) -> Pago:
     return pago
 
 
-def emitir_recibo(tramite, administrador):
-    """El administrador revisa el comprobante, genera el recibo oficial en el
-    sistema de la universidad y lo sube aquí.
+def confirmar_pago(tramite, administrador):
+    """El administrador coteja el comprobante contra el recibo que tiene a la
+    mano y confirma que la referencia corresponde.
 
-    Ese recibo es lo que desbloquea a Secretaría: sin él no se puede elaborar
-    el documento. Por eso el archivo es obligatorio y la etapa no avanza sin
-    él; el endpoint lo exige antes de llamar a esta función."""
+    Aquí no sube nada: el recibo oficial lo genera fuera del sistema y se lo
+    entrega en físico a Secretaría, que lo escanea. Pedirle además que lo
+    subiera duplicaría el trabajo y dejaría el trámite detenido esperando un
+    archivo que ya viaja por otro lado."""
     pago = _pago_vigente(tramite)
     if pago is None:
         raise ErrorDominio("Este trámite no tiene un pago declarado.")

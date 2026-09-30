@@ -144,7 +144,7 @@ def crear():
         ))
 
     db.session.commit()
-    N.cambio_de_etapa(tramite, E.etapa_actual(tramite), current_user)
+    N.tramite_iniciado(tramite, current_user)
     return jsonify(S.tramite_a_dict(tramite, detallado=True)), 201
 
 
@@ -175,7 +175,7 @@ def avanzar(folio):
 
     S.avanzar_etapa(tramite, current_user, texto)
     db.session.commit()
-    N.cambio_de_etapa(tramite, E.etapa_actual(tramite), current_user)
+    N.llego_a_tu_bandeja(tramite, E.etapa_actual(tramite), current_user)
     return jsonify(S.tramite_a_dict(tramite, detallado=True))
 
 
@@ -207,64 +207,69 @@ def subir_comprobante(folio):
     ))
     S.avanzar_etapa(tramite, current_user, "Comprobante de pago enviado")
     db.session.commit()
-    N.cambio_de_etapa(tramite, E.etapa_actual(tramite), current_user)
+    N.llego_a_tu_bandeja(tramite, E.etapa_actual(tramite), current_user)
     return jsonify(S.tramite_a_dict(tramite, detallado=True))
 
 
 @bp.post("/<folio>/documento")
 @rol_requerido(Rol.SECRETARIA)
 def entregar_documento(folio):
-    """Cierra la etapa de elaboración. Exige el archivo: un trámite no puede
-    quedar 'entregado' sin documento, o el alumno recibiría un aviso de algo
-    que no existe."""
+    """Cierra el trámite. Secretaría sube los dos archivos a la vez: el recibo
+    que Administración le entregó en físico y ya escaneó, y el documento que
+    elaboró.
+
+    Los dos son obligatorios. Sin recibo el alumno se queda sin comprobante de
+    su pago; sin documento el trámite quedaría 'entregado' sin nada que
+    entregar, y el alumno recibiría aviso de algo que no existe. El del recibo
+    solo se exige cuando hubo pago."""
     tramite = _obtener(folio)
     if tramite is None:
         return jsonify({"error": "No tienes acceso a este trámite"}), 403
 
     if E.etapa_actual(tramite).clave != "elaboracion":
-        raise ErrorDominio("Este trámite no está en etapa de elaboración.")
+        raise ErrorDominio("Este trámite no está esperando el recibo y el documento.")
 
-    archivo = request.files.get("documento")
-    if not archivo:
-        raise ErrorDominio("Adjunta el documento firmado antes de entregar.")
+    documento = request.files.get("documento")
+    if not documento:
+        raise ErrorDominio("Adjunta el documento elaborado.")
 
-    meta = guardar(archivo, tramite.folio)
+    lleva_pago = tramite.momento_pago != MomentoPago.SIN_COSTO
+    recibo = request.files.get("recibo")
+    if lleva_pago and not recibo:
+        raise ErrorDominio("Adjunta también el recibo escaneado que te entregó Administración.")
+
+    if recibo and lleva_pago:
+        db.session.add(Archivo(
+            tramite_id=tramite.id, tipo=TipoArchivo.RECIBO,
+            subido_por_id=current_user.id, **guardar(recibo, tramite.folio),
+        ))
     db.session.add(Archivo(
         tramite_id=tramite.id, tipo=TipoArchivo.DOCUMENTO_FINAL,
-        subido_por_id=current_user.id, **meta,
+        subido_por_id=current_user.id, **guardar(documento, tramite.folio),
     ))
-    S.avanzar_etapa(tramite, current_user, "Documento elaborado y entregado")
+
+    S.avanzar_etapa(tramite, current_user, "Recibo y documento entregados")
     db.session.commit()
-    N.cambio_de_etapa(tramite, E.etapa_actual(tramite), current_user)
+    N.tramite_concluido(tramite, current_user)
     return jsonify(S.tramite_a_dict(tramite, detallado=True))
 
 
-@bp.post("/<folio>/recibo")
+@bp.post("/<folio>/confirmar-pago")
 @rol_requerido(Rol.ADMINISTRADOR)
-def emitir_recibo(folio):
-    """El recibo se genera en el sistema de la universidad y se sube aquí.
-
-    Es obligatorio: Secretaría lo necesita para elaborar el documento, y el
-    alumno lo recibe como comprobante oficial de su pago."""
+def confirmar_pago(folio):
+    """Administración coteja la referencia declarada contra el recibo que tiene
+    a la mano y confirma que corresponde. No sube archivos: el recibo oficial lo
+    genera fuera del sistema y se lo entrega en físico a Secretaría."""
     tramite = _obtener(folio)
     if tramite is None:
         return jsonify({"error": "No tienes acceso a este trámite"}), 403
 
     if E.etapa_actual(tramite).clave != "validacion":
-        raise ErrorDominio("Este trámite no está esperando el recibo.")
+        raise ErrorDominio("Este trámite no está esperando verificación de pago.")
 
-    archivo = request.files.get("recibo")
-    if not archivo:
-        raise ErrorDominio("Adjunta el recibo oficial antes de enviarlo.")
-
-    meta = guardar(archivo, tramite.folio)
-    db.session.add(Archivo(
-        tramite_id=tramite.id, tipo=TipoArchivo.RECIBO,
-        subido_por_id=current_user.id, **meta,
-    ))
-    S.emitir_recibo(tramite, current_user)
+    S.confirmar_pago(tramite, current_user)
     db.session.commit()
-    N.recibo_emitido(tramite, current_user)
+    N.llego_a_tu_bandeja(tramite, E.etapa_actual(tramite), current_user)
     return jsonify(S.tramite_a_dict(tramite, detallado=True))
 
 

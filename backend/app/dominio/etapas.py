@@ -26,14 +26,14 @@ class Etapa:
 
 _SIN_COSTO = [
     Etapa("solicitud", "Solicitud registrada", ALUMNO, None),
-    Etapa("elaboracion", "Elaboración del documento", SECRETARIA, 3),
+    Etapa("elaboracion", "Recibo y documento", SECRETARIA, 3),
     Etapa("entregado", "Documento entregado", None, None),
 ]
 
 _AL_SOLICITAR = [
     Etapa("solicitud_pago", "Solicitud y comprobante enviados", ALUMNO, None),
-    Etapa("validacion", "Validación y recibo de pago", ADMINISTRADOR, 2),
-    Etapa("elaboracion", "Elaboración del documento", SECRETARIA, 3),
+    Etapa("validacion", "Verificación del pago", ADMINISTRADOR, 2),
+    Etapa("elaboracion", "Recibo y documento", SECRETARIA, 3),
     Etapa("entregado", "Documento entregado", None, None),
 ]
 
@@ -41,8 +41,8 @@ _TRAS_LINEA = [
     Etapa("solicitud", "Solicitud registrada", ALUMNO, None),
     Etapa("linea_captura", "Línea de captura emitida", SECRETARIA, 2),
     Etapa("comprobante", "Comprobante de pago", ALUMNO, 5),
-    Etapa("validacion", "Validación y recibo de pago", ADMINISTRADOR, 2),
-    Etapa("elaboracion", "Elaboración del documento", SECRETARIA, 3),
+    Etapa("validacion", "Verificación del pago", ADMINISTRADOR, 2),
+    Etapa("elaboracion", "Recibo y documento", SECRETARIA, 3),
     Etapa("entregado", "Documento entregado", None, None),
 ]
 

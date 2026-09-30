@@ -14,5 +14,10 @@ class Programa(db.Model):
     nombre = db.Column(db.String(160), nullable=False)
     activo = db.Column(db.Boolean, nullable=False, default=True)
 
+    # Duración máxima de la carrera. Pasado ese tiempo el alumno pierde el
+    # acceso a la ventanilla; lo que necesite después se atiende por correo.
+    anios_vigencia = db.Column(db.Integer, nullable=False, default=6)
+
     def a_dict(self):
-        return {"id": self.id, "clave": self.clave, "nombre": self.nombre}
+        return {"id": self.id, "clave": self.clave, "nombre": self.nombre,
+                "anios_vigencia": self.anios_vigencia}

@@ -30,7 +30,18 @@ class PadronAlumno(db.Model):
     programa_id = db.Column(db.Integer, db.ForeignKey("programas.id"), nullable=False)
     activado = db.Column(db.Boolean, nullable=False, default=False)
 
+    # Desde cuándo está en el programa. Con esto se calcula la vigencia: pasada
+    # la duración máxima de la carrera, el alumno pierde el acceso. Si no viene
+    # en la carga, se usa la fecha de alta en el sistema.
+    fecha_ingreso = db.Column(db.Date, nullable=True)
+    creado_en = db.Column(db.DateTime, nullable=False, default=ahora)
+    dado_de_baja = db.Column(db.Boolean, nullable=False, default=False)
+
     programa = db.relationship("Programa")
+
+    @property
+    def inicio(self):
+        return self.fecha_ingreso or self.creado_en.date()
 
 
 class Usuario(UserMixin, db.Model):

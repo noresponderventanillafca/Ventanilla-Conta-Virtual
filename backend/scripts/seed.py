@@ -104,11 +104,19 @@ with app.app_context():
         u.notificaciones_todas = (rol == Rol.COORDINADORA)
         db.session.add(u)
 
+    from datetime import date
     db.session.add(PadronAlumno(
         matricula="S23012345", curp_prefijo="RUMA030214",
         nombre="Ana Ruiz Márquez",
         correo_institucional="zs23012345@estudiantes.uv.mx",
-        programa_id=programa.id,
+        programa_id=programa.id, fecha_ingreso=date(2023, 8, 1),
+    ))
+    # Alumno de 2017: sirve para probar la depuración por antigüedad.
+    db.session.add(PadronAlumno(
+        matricula="S17009876", curp_prefijo="LOPE970512",
+        nombre="Roberto López Estrada",
+        correo_institucional="zs17009876@estudiantes.uv.mx",
+        programa_id=programa.id, fecha_ingreso=date(2017, 8, 1),
     ))
 
     db.session.commit()

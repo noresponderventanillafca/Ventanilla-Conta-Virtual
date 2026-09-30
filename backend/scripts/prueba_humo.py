@@ -125,14 +125,26 @@ def main():
     sesion(Rol.SECRETARIA)
     chk("bandeja", cliente.get("/api/tramites/bandeja"))
     chk("padrón", cliente.get("/api/padron"))
-    chk("cargar padrón", cliente.post("/api/padron/cargar", data={"archivo": (io.BytesIO(
+    chk("cargar padrón CSV", cliente.post("/api/padron/cargar", data={"archivo": (io.BytesIO(
         "matricula,curp_prefijo,nombre,correo_institucional\n"
         "S23099999,RUMA030214,Ñandú Pérez,z@uv.mx\n".encode()), "p.csv")}, content_type=mp))
+    chk("alta de uno en uno", cliente.post("/api/padron", json={
+        "matricula": "S26001234", "curp_prefijo": "NUEV060101",
+        "nombre": "Alumno Nuevo", "correo_institucional": "an@uv.mx",
+        "fecha_ingreso": "2026"}), 201)
+    chk("matrícula repetida se rechaza", cliente.post("/api/padron", json={
+        "matricula": "S26001234", "curp_prefijo": "NUEV060101",
+        "nombre": "Otro", "correo_institucional": "o@uv.mx"}), 400)
+    chk("CURP corta se rechaza", cliente.post("/api/padron", json={
+        "matricula": "S26009999", "curp_prefijo": "CORTA",
+        "nombre": "X", "correo_institucional": "x@uv.mx"}), 400)
+    chk("formato no aceptado se rechaza", cliente.post("/api/padron/cargar", data={
+        "archivo": (io.BytesIO(b"cualquier cosa"), "p.txt")}, content_type=mp), 400)
     chk("emitir línea de captura", cliente.post(f"/api/tramites/{t3['folio']}/avanzar",
         json={"linea_captura": "4410-8827"}))
     chk("entregar sin archivo se rechaza", cliente.post(
         f"/api/tramites/{t2['folio']}/documento", data={}, content_type=mp), 400)
-    chk("entregar kardex", cliente.post(f"/api/tramites/{t2['folio']}/documento",
+    chk("el kardex no exige recibo", cliente.post(f"/api/tramites/{t2['folio']}/documento",
         data={"documento": archivo("k.pdf")}, content_type=mp))
 
     print("Alumno: comprobante posterior")
@@ -144,19 +156,29 @@ def main():
     print("Administración")
     sesion(Rol.ADMINISTRADOR)
     chk("cola", cliente.get("/api/tramites/bandeja"))
-    chk("emitir recibo sin archivo se rechaza", cliente.post(
-        f"/api/tramites/{t1['folio']}/recibo", data={}, content_type=mp), 400)
-    chk("emitir recibo t1", cliente.post(f"/api/tramites/{t1['folio']}/recibo",
-        data={"recibo": archivo("recibo1.pdf")}, content_type=mp))
-    chk("emitir recibo t3", cliente.post(f"/api/tramites/{t3['folio']}/recibo",
-        data={"recibo": archivo("recibo3.pdf")}, content_type=mp))
+    chk("confirmar pago t1", cliente.post(f"/api/tramites/{t1['folio']}/confirmar-pago"))
+    chk("confirmar pago t3", cliente.post(f"/api/tramites/{t3['folio']}/confirmar-pago"))
+    chk("no puede confirmar dos veces", cliente.post(
+        f"/api/tramites/{t1['folio']}/confirmar-pago"), 400)
 
     print("Secretaría: entrega")
     sesion(Rol.SECRETARIA)
-    chk("entregar t1", cliente.post(f"/api/tramites/{t1['folio']}/documento",
-        data={"documento": archivo("c1.pdf")}, content_type=mp))
-    chk("entregar t3", cliente.post(f"/api/tramites/{t3['folio']}/documento",
-        data={"documento": archivo("c3.pdf")}, content_type=mp))
+    chk("con pago exige también el recibo", cliente.post(
+        f"/api/tramites/{t1['folio']}/documento",
+        data={"documento": archivo("c1.pdf")}, content_type=mp), 400)
+    chk("entregar t1 con recibo y documento", cliente.post(
+        f"/api/tramites/{t1['folio']}/documento",
+        data={"recibo": archivo("rec1.pdf"), "documento": archivo("c1.pdf")},
+        content_type=mp))
+    final = chk("entregar t3 con recibo y documento", cliente.post(
+        f"/api/tramites/{t3['folio']}/documento",
+        data={"recibo": archivo("rec3.pdf"), "documento": archivo("c3.pdf")},
+        content_type=mp))
+    tipos_archivo = sorted({a["tipo"] for a in (final or {}).get("archivos", [])})
+    print(f"       archivos del expediente: {tipos_archivo}")
+    for esperado in ("recibo", "documento_final"):
+        if esperado not in tipos_archivo:
+            fallos.append((f"falta el archivo {esperado} en el expediente", str(tipos_archivo)))
 
     print("Contraseñas")
     c2 = app.test_client()
@@ -285,21 +307,38 @@ def main():
             tramite = Tramite.query.filter_by(folio=t1["folio"]).first()
             alumna = db.session.get(Usuario, ids[Rol.ALUMNO])
             with app.test_request_context():
-                N.cambio_de_etapa(tramite, E.etapa_actual(tramite), alumna)
+                N.tramite_iniciado(tramite, alumna)
         finally:
             N._en_segundo_plano = original
 
-    destinos = enviados[0] if enviados else []
-    print(f"       destinatarios: {destinos}")
-    if "COORD@uv.mx" not in destinos:
-        fallos.append(("la coordinación debe recibir el aviso", str(destinos)))
-    if "S23012345@uv.mx" in destinos:
-        fallos.append(("no se avisa a quien causó el evento", str(destinos)))
+    # Dos correos: la confirmación al alumno y el aviso a quien lo atiende.
+    print(f"       correos generados: {len(enviados)}")
+    for destinos in enviados:
+        print(f"         {destinos}")
+    plano = [d for grupo in enviados for d in grupo]
+    if "S23012345@uv.mx" not in plano:
+        fallos.append(("el alumno debe recibir la confirmación", str(enviados)))
+    if "COORD@uv.mx" not in plano:
+        fallos.append(("la coordinación debe recibir el aviso", str(enviados)))
+    avisos_personal = [g for g in enviados if "S23012345@uv.mx" not in g]
+    if any("S23012345@uv.mx" in g and len(g) > 1 for g in enviados):
+        fallos.append(("la confirmación del alumno no debe mezclarse con el aviso interno",
+                       str(enviados)))
 
     print("Alcance de Secretaría")
     sesion(Rol.SECRETARIA)
     hs = chk("historial de secretaría", cliente.get("/api/tramites/historial"))
     print(f"       ve {len(hs)} trámites en los que intervino")
+
+    print("Vigencia y depuración")
+    sesion(Rol.COORDINADORA)
+    chk("vista previa de depuración", cliente.get("/api/padron/depurar"))
+    chk("depurar sin confirmar se rechaza", cliente.post("/api/padron/depurar", json={}), 400)
+    chk("cambiar vigencia", cliente.put("/api/ajustes/vigencia", json={"anios_vigencia": 7}))
+    chk("vigencia fuera de rango se rechaza", cliente.put("/api/ajustes/vigencia",
+        json={"anios_vigencia": 50}), 400)
+    sesion(Rol.SECRETARIA)
+    chk("secretaría no depura", cliente.post("/api/padron/depurar", json={"confirmar": True}), 403)
 
     print("Ajustes de la Coordinación")
     sesion(Rol.COORDINADORA)
@@ -359,8 +398,8 @@ def main():
     sesion(Rol.COORDINADORA)
     lista = chk("tablero", cliente.get("/api/tramites"))
     chk("retrasados", cliente.get("/api/tramites/retrasados"))
-    chk("no puede emitir recibos", cliente.post(
-        f"/api/tramites/{t1['folio']}/recibo", data={}, content_type=mp), 403)
+    chk("no puede confirmar pagos", cliente.post(
+        f"/api/tramites/{t1['folio']}/confirmar-pago"), 403)
     hc = chk("la coordinación sí ve todo", cliente.get("/api/tramites/historial"))
     if hc is not None and len(hc) < 3:
         fallos.append(("la coordinación debería ver todos los trámites", str(len(hc))))
