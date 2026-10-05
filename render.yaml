@@ -1,0 +1,27 @@
+# Render lee este archivo solo si el servicio se crea como "Blueprint".
+# Si lo creaste a mano desde el panel, estas opciones NO se aplican: hay que
+# poner "backend" en Settings → Build & Deploy → Root Directory.
+services:
+  - type: web
+    name: ventanilla-virtual
+    runtime: python
+    plan: free
+    # Sin esto, Render busca requirements.txt en la raíz del repositorio y
+    # falla, porque el backend vive en su propia carpeta.
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 60
+    healthCheckPath: /api/salud
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.9"
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALMACENAMIENTO
+        value: s3
+      # El resto se configura a mano en el panel, porque son secretos:
+      #   DATABASE_URL, S3_ENDPOINT, S3_CLAVE, S3_SECRETO, S3_BUCKET,
+      #   URL_PUBLICA, FRONTEND_ORIGIN,
+      #   SMTP_HOST, SMTP_USUARIO, SMTP_PASSWORD, CORREO_REMITENTE

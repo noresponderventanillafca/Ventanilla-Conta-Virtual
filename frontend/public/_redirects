@@ -1,0 +1,12 @@
+# Netlify reenvía /api al backend. Para el navegador todo sigue siendo el mismo
+# sitio, así que la cookie de sesión viaja normal y no hay CORS.
+#
+# Sin esto, Netlify y Render son dominios distintos: la cookie `SameSite=Lax`
+# no se envía entre sitios y el inicio de sesión no funciona, aunque en
+# desarrollo todo se vea bien porque el proxy de Vite hace lo mismo.
+#
+# Cambia la URL por la de tu servicio de Render.
+/api/*  https://TU-BACKEND.onrender.com/api/:splat  200
+
+# El resto lo resuelve React Router del lado del cliente.
+/*      /index.html                                  200

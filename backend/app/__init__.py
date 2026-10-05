@@ -8,6 +8,10 @@ def crear_app(config=Config):
     app = Flask(__name__)
     app.config.from_object(config)
 
+    if app.config.get("DETRAS_DE_PROXY"):
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
@@ -44,7 +48,8 @@ def crear_app(config=Config):
 
     # Con contraseña temporal, el servidor bloquea todo salvo cambiarla.
     # Dejarlo solo en la interfaz no serviría: la API es accesible directamente.
-    LIBRES = {"/api/auth/password", "/api/auth/logout", "/api/auth/yo", "/api/auth/login"}
+    LIBRES = {"/api/auth/password", "/api/auth/logout", "/api/auth/yo",
+              "/api/auth/login", "/api/salud"}
 
     @app.before_request
     def exigir_cambio_de_password():
@@ -59,6 +64,29 @@ def crear_app(config=Config):
                 "codigo": "password_temporal",
             }), 403
         return None
+
+    @app.get("/api/salud")
+    def salud():
+        """Sin sesión a propósito: sirve para que un monitor externo mantenga
+        despierto el servicio y para ver de un vistazo si la base y el almacén
+        de archivos responden."""
+        from sqlalchemy import text
+        from .almacenamiento import comprobar
+
+        try:
+            db.session.execute(text("SELECT 1"))
+            base = "ok"
+        except Exception as e:
+            base = f"falla: {type(e).__name__}"
+
+        archivos = comprobar() or "ok"
+        bien = base == "ok" and archivos == "ok"
+        return jsonify({
+            "base_de_datos": base,
+            "archivos": archivos,
+            "almacenamiento": app.config.get("ALMACENAMIENTO"),
+            "correo": "configurado" if app.config.get("SMTP_HOST") else "solo a la consola",
+        }), (200 if bien else 503)
 
     @app.errorhandler(413)
     def archivo_grande(_):

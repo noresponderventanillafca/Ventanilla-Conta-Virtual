@@ -1,12 +1,23 @@
+# Python
 __pycache__/
 *.py[cod]
 .venv/
 venv/
-.env
 instance/
-archivos/
-migrations/versions/*.pyc
 
+# Secretos y datos: NUNCA deben llegar al repositorio
+.env
+.env.*
+!.env.example
+archivos/
+*.sql
+*.sql.gz
+
+# Node
 node_modules/
 dist/
+.vite/
+
+# Sistema
 .DS_Store
+Thumbs.db

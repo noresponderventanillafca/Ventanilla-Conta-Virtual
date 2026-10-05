@@ -7,14 +7,14 @@ y a dónde se deposita.
 
 from pathlib import Path
 
-from flask import Blueprint, jsonify, request, send_file, current_app
+from flask import Blueprint, jsonify, request, current_app
 from flask_login import login_required, current_user
 
 from ..extensions import db
 from ..models import TipoDocumento, MomentoPago, Tramite, Rol, CuentaInstitucional, Programa
 from ..seguridad import rol_requerido
 from ..dominio.servicios import ErrorDominio
-from ..almacenamiento import guardar
+from ..almacenamiento import guardar, entregar, comprobar as comprobar_almacen
 from .. import notificaciones as N
 
 bp = Blueprint("ajustes", __name__)
@@ -164,15 +164,13 @@ def ver_ejemplo(tipo_id):
     if not tipo or not tipo.ejemplo_ruta:
         return jsonify({"error": "Este documento no tiene ejemplo"}), 404
 
-    ruta = Path(current_app.config["RUTA_ARCHIVOS"]) / tipo.ejemplo_ruta
-    if not ruta.exists():
-        return jsonify({"error": "El ejemplo ya no está en el servidor"}), 404
-
-    respuesta = send_file(ruta, download_name=tipo.ejemplo_nombre,
-                          as_attachment=request.args.get("descargar") == "1",
-                          conditional=True)
-    respuesta.headers["X-Content-Type-Options"] = "nosniff"
-    respuesta.headers["Content-Security-Policy"] = "default-src 'none'; sandbox; object-src 'self'"
+    mime = {".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+            ".png": "image/png"}.get(Path(tipo.ejemplo_ruta).suffix.lower(),
+                                     "application/octet-stream")
+    respuesta = entregar(tipo.ejemplo_ruta, tipo.ejemplo_nombre, mime,
+                         request.args.get("descargar") == "1")
+    if respuesta is None:
+        return jsonify({"error": "El ejemplo ya no está disponible"}), 404
     return respuesta
 
 

@@ -16,6 +16,7 @@ from ..extensions import db
 from ..models import PadronAlumno, Usuario, Rol, Tramite, Archivo, Evento, TipoEvento
 from ..seguridad import rol_requerido
 from ..dominio.servicios import ErrorDominio
+from ..almacenamiento import borrar
 
 bp = Blueprint("padron", __name__)
 
@@ -281,7 +282,6 @@ def depurar():
         raise ErrorDominio("Falta confirmar la depuración.")
 
     eliminados, dados_de_baja, archivos_borrados = 0, 0, 0
-    raiz = Path(current_app.config["RUTA_ARCHIVOS"])
 
     for registro in _vencidos():
         usuario = Usuario.query.filter_by(identificador=registro.matricula, rol=Rol.ALUMNO).first()
@@ -296,9 +296,7 @@ def depurar():
 
         for tramite in tramites:
             for archivo in list(tramite.archivos):
-                ruta = raiz / archivo.ruta_relativa
-                if ruta.exists():
-                    ruta.unlink()
+                borrar(archivo.ruta_relativa)
                 db.session.delete(archivo)
                 archivos_borrados += 1
             # Queda constancia de la depuración en la propia bitácora.

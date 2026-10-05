@@ -430,6 +430,16 @@ y una dirección tipo `ventanilla-noreply@uv.mx`: si los correos salen desde la
 cuenta de la Coordinación, los alumnos van a responderle ahí y vuelve el
 problema que la ventanilla resuelve.
 
+## Despliegue
+
+Ver `DESPLIEGUE.md`. Lo esencial: el frontend llama al backend **a través del
+proxy de Netlify** (`frontend/public/_redirects`), no directamente. Así el
+navegador ve un solo origen, la cookie de sesión viaja normal y no hay CORS.
+Llamar al backend desde otro dominio rompe el inicio de sesión.
+
+Y el plan gratuito de Render **pierde los archivos subidos** en cada reinicio o
+redespliegue. Sirve para enseñar el sistema; no para usarlo.
+
 ## Antes de producción
 
 - Cambia `SECRET_KEY` por una cadena larga y aleatoria. Los enlaces de

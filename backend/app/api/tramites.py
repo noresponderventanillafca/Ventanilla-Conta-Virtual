@@ -1,8 +1,7 @@
 from datetime import date
 
-from flask import Blueprint, jsonify, request, send_file, current_app
+from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
-from pathlib import Path
 
 from ..extensions import db
 from ..models import (
@@ -12,7 +11,7 @@ from ..dominio import etapas as E
 from ..dominio import servicios as S
 from ..dominio.servicios import ErrorDominio
 from ..seguridad import rol_requerido, puede_ver
-from ..almacenamiento import guardar
+from ..almacenamiento import guardar, entregar
 from .. import notificaciones as N
 
 bp = Blueprint("tramites", __name__)
@@ -325,20 +324,8 @@ def ver_archivo(folio, archivo_id):
     if not archivo or archivo.tramite_id != tramite.id:
         return jsonify({"error": "Archivo no encontrado"}), 404
 
-    ruta = Path(current_app.config["RUTA_ARCHIVOS"]) / archivo.ruta_relativa
-    if not ruta.exists():
-        return jsonify({"error": "El archivo ya no está en el servidor"}), 404
-
-    adjunto = request.args.get("descargar") == "1"
-    respuesta = send_file(
-        ruta,
-        mimetype=archivo.mime,
-        download_name=archivo.nombre_original,
-        as_attachment=adjunto,
-        conditional=True,
-    )
-    # Estos archivos los suben los usuarios. Servirlos en línea sin blindaje
-    # permitiría que un PDF con scripts se ejecute en el contexto del sitio.
-    respuesta.headers["X-Content-Type-Options"] = "nosniff"
-    respuesta.headers["Content-Security-Policy"] = "default-src 'none'; sandbox; object-src 'self'"
+    respuesta = entregar(archivo.ruta_relativa, archivo.nombre_original,
+                         archivo.mime, request.args.get("descargar") == "1")
+    if respuesta is None:
+        return jsonify({"error": "El archivo ya no está disponible"}), 404
     return respuesta
