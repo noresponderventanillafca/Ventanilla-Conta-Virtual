@@ -137,8 +137,30 @@ def borrar(ruta_relativa: str) -> bool:
     return False
 
 
+PISTAS = {
+    "403": "Las claves no tienen permiso sobre este bucket. Revisa que el token "
+           "de R2 sea de tipo «Object Read & Write» y que esté alcanzando a este "
+           "bucket, no a otro.",
+    "401": "Las claves son incorrectas. El Secret Access Key solo se muestra una "
+           "vez al crear el token; si se perdió, genera uno nuevo.",
+    "404": "El bucket no existe con ese nombre. Compáralo con el del panel de R2: "
+           "distingue mayúsculas.",
+    "NoSuchBucket": "El bucket no existe con ese nombre en esta cuenta.",
+    "InvalidAccessKeyId": "El Access Key ID no corresponde a ninguna cuenta. "
+                          "Revisa que no se haya copiado con espacios de más.",
+    "SignatureDoesNotMatch": "El Secret Access Key no corresponde al Access Key ID.",
+}
+
+
 def comprobar() -> str | None:
-    """Verifica que el almacén responda. Devuelve el motivo si falla."""
+    """Verifica que el almacén responda, haciendo exactamente lo que hace la
+    aplicación: escribir, leer y borrar un objeto.
+
+    No usa head_bucket a propósito. Esa es una operación de bucket, y un token
+    de R2 restringido a «Object Read & Write» sobre un bucket puede rechazarla
+    aunque los permisos para trabajar sean correctos: daría un fallo donde no lo
+    hay.
+    """
     if not _en_s3():
         ruta = Path(current_app.config["RUTA_ARCHIVOS"])
         try:
@@ -152,10 +174,37 @@ def comprobar() -> str | None:
 
     try:
         cliente, bucket = _s3()
-        cliente.head_bucket(Bucket=bucket)
-        return None
     except ErrorDominio as e:
         return str(e)
+
+    clave = "salud/.comprobacion"
+    try:
+        cliente.put_object(Bucket=bucket, Key=clave, Body=b"ok",
+                           ContentType="text/plain")
+        cliente.get_object(Bucket=bucket, Key=clave)
+        cliente.delete_object(Bucket=bucket, Key=clave)
+        return None
     except Exception as e:
-        return (f"No se pudo acceder al bucket {current_app.config.get('S3_BUCKET')}: "
-                f"{type(e).__name__}. Revisa endpoint, claves y nombre del bucket.")
+        return _explicar_s3(e, bucket)
+
+
+def _explicar_s3(error, bucket) -> str:
+    """Un «ClientError» a secas no le dice a nadie si el problema es la clave,
+    el nombre del bucket o el endpoint."""
+    respuesta = getattr(error, "response", None) or {}
+    codigo = str(respuesta.get("Error", {}).get("Code", "")) or ""
+    estado = str(respuesta.get("ResponseMetadata", {}).get("HTTPStatusCode", "")) or ""
+    endpoint = current_app.config.get("S3_ENDPOINT") or "(sin endpoint)"
+
+    pista = PISTAS.get(codigo) or PISTAS.get(estado) or (
+        "Revisa que S3_ENDPOINT sea el de la cuenta "
+        "(https://<id-de-cuenta>.r2.cloudflarestorage.com), no la URL pública "
+        "del bucket, y que S3_REGION sea «auto»."
+    )
+    detalle = f"{type(error).__name__}"
+    if codigo:
+        detalle += f" {codigo}"
+    if estado:
+        detalle += f" (HTTP {estado})"
+
+    return f"bucket «{bucket}» en {endpoint} → {detalle}. {pista}"

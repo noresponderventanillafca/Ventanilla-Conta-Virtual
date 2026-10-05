@@ -140,6 +140,18 @@ cuenta mientras el servicio duerme, así que no lo despierta.
 `/api/salud` además dice si la base y el almacén de archivos responden, lo que
 sirve para enterarse de un problema antes que los usuarios.
 
+### Si `/api/salud` falla en los archivos
+
+El mensaje dice exactamente qué revisar. Los dos tropiezos más comunes:
+
+**El endpoint.** Debe ser el de la **cuenta**,
+`https://<id-de-cuenta>.r2.cloudflarestorage.com`, no la URL pública del bucket
+ni la que incluye el nombre del bucket al final.
+
+**El permiso del token.** Tiene que ser **Object Read & Write**. Un token de
+solo lectura deja pasar la comprobación de conexión pero falla al subir el
+primer comprobante.
+
 ## 6. Comprobar
 
 1. Abre `https://TU-BACKEND.onrender.com/api/salud`. Debe decir `ok` en base de
