@@ -1,3 +1,3 @@
-matricula,curp_prefijo,nombre,correo_institucional
-S23011111,RUMA030214,Ana Ruiz Márquez,zs23011111@estudiantes.uv.mx
-S23022222,GOLU040815,Luis Ángel Gómez Núñez,zs23022222@estudiantes.uv.mx
+matricula,curp_prefijo,nombre,correo_institucional,fecha_ingreso
+S26001111,RUMA060214,Ana Ruiz Márquez,zs26001111@estudiantes.uv.mx,2026
+S26002222,GOLU060815,Luis Ángel Gómez Núñez,zs26002222@estudiantes.uv.mx,2026-08-01

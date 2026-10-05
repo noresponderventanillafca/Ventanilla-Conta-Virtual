@@ -175,7 +175,6 @@ def avanzar(folio):
 
     S.avanzar_etapa(tramite, current_user, texto)
     db.session.commit()
-    N.llego_a_tu_bandeja(tramite, E.etapa_actual(tramite), current_user)
     return jsonify(S.tramite_a_dict(tramite, detallado=True))
 
 
@@ -207,7 +206,6 @@ def subir_comprobante(folio):
     ))
     S.avanzar_etapa(tramite, current_user, "Comprobante de pago enviado")
     db.session.commit()
-    N.llego_a_tu_bandeja(tramite, E.etapa_actual(tramite), current_user)
     return jsonify(S.tramite_a_dict(tramite, detallado=True))
 
 
@@ -269,7 +267,6 @@ def confirmar_pago(folio):
 
     S.confirmar_pago(tramite, current_user)
     db.session.commit()
-    N.llego_a_tu_bandeja(tramite, E.etapa_actual(tramite), current_user)
     return jsonify(S.tramite_a_dict(tramite, detallado=True))
 
 

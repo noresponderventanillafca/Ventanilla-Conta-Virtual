@@ -1,0 +1,16 @@
+Coloca aquí el escudo oficial de la Universidad Veracruzana, con estos nombres:
+
+  escudo-uv-blanco.png   Versión en blanco o monocromática.
+                         Se usa sobre la barra azul y la pantalla de acceso.
+
+  escudo-uv.png          Versión a color, para fondos claros.
+
+Formato PNG con fondo transparente, o SVG si lo tienes (cambia la extensión en
+src/componentes/Escudo.jsx). Con al menos 200 píxeles de alto para que se vea
+nítido en pantallas de alta densidad.
+
+Mientras no existan, la interfaz muestra un recuadro punteado en su lugar.
+
+Pide los archivos oficiales a la Facultad o a Comunicación Universitaria. No
+tomes el escudo de una búsqueda de imágenes: suelen estar deformados, con fondo
+blanco recortado o en versiones que ya no son vigentes.

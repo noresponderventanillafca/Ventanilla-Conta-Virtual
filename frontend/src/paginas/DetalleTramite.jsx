@@ -173,6 +173,7 @@ function ZonaAccion({ tramite, usuario, onActualizar }) {
   const [linea, setLinea] = useState("");
   const [pago, setPago] = useState({ fecha_deposito: "", referencia_operacion: "", comprobante: null });
   const [documento, setDocumento] = useState(null);
+  const [reciboEscaneado, setReciboEscaneado] = useState(null);
 
   const ejecutar = async (fn) => {
     setOcupado(true);
@@ -221,29 +222,45 @@ function ZonaAccion({ tramite, usuario, onActualizar }) {
       </Aviso>
     );
 
-  if (tramite.etapa_clave === "elaboracion")
+  if (tramite.etapa_clave === "elaboracion") {
+    const llevaPago = tramite.momento_pago !== "sin_costo";
+    const listo = documento && (!llevaPago || reciboEscaneado);
     return (
-      <Aviso titulo="Elabora y entrega el documento">
-        Sube el PDF firmado. El alumno recibirá un correo con el enlace y podrá
-        descargarlo desde aquí.
-        {/* El archivo es obligatorio: un trámite no puede quedar "entregado"
-            sin documento, o el alumno recibiría aviso de algo que no existe. */}
+      <Aviso titulo="Sube el recibo y el documento">
+        {llevaPago
+          ? "Escanea el recibo que te entregó Administración y súbelo junto con el documento elaborado. Los dos se envían a la vez y con eso el trámite concluye."
+          : "Sube el documento elaborado. Con eso el trámite concluye."}
+        {/* Los dos archivos son obligatorios: sin recibo el alumno se queda sin
+            comprobante de su pago, y sin documento el trámite quedaría
+            "entregado" sin nada que entregar. */}
         <div className="mt-3 space-y-3">
+          {llevaPago && (
+            <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-[13px]"
+                   style={estiloInput}>
+              <Upload size={15} color={C.gris400} />
+              {reciboEscaneado ? reciboEscaneado.name : "1 · Recibo escaneado"}
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
+                     onChange={(e) => setReciboEscaneado(e.target.files?.[0] ?? null)} />
+            </label>
+          )}
           <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-[13px]"
                  style={estiloInput}>
             <Upload size={15} color={C.gris400} />
-            {documento ? documento.name : "Selecciona el documento firmado"}
+            {documento ? documento.name : `${llevaPago ? "2 · " : ""}Documento elaborado`}
             <input type="file" accept=".pdf" className="hidden"
                    onChange={(e) => setDocumento(e.target.files?.[0] ?? null)} />
           </label>
           <MensajeError>{error}</MensajeError>
-          <Boton disabled={ocupado || !documento}
-                 onClick={() => ejecutar(() => api.entregarDocumento(tramite.folio, documento))}>
-            Entregar documento
+          <Boton disabled={ocupado || !listo}
+                 onClick={() => ejecutar(() => api.entregarDocumento(tramite.folio, {
+                   documento, ...(llevaPago ? { recibo: reciboEscaneado } : {}),
+                 }))}>
+            Entregar al alumno
           </Boton>
         </div>
       </Aviso>
     );
+  }
 
   if (tramite.etapa_clave === "comprobante")
     return (

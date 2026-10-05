@@ -3,6 +3,8 @@ import { useState } from "react";
 import { C } from "../tokens";
 import { api } from "../api/cliente";
 import { useSesion } from "../sesion";
+import { FlechasGrandes } from "../componentes/Chevrones";
+import Escudo from "../componentes/Escudo";
 import { Boton, Campo, MensajeError, estiloInput } from "../componentes/ui";
 
 /* La CURP prueba que la persona está en el padrón y ahí termina su papel.
@@ -19,15 +21,12 @@ export default function Acceso() {
       <aside className="flex flex-col justify-between px-8 py-12 lg:w-[520px] lg:px-16 lg:py-16"
              style={{ background: C.azul900 }}>
         <div className="space-y-7">
-          <span className="inline-block rounded px-5 py-5 text-xs font-semibold"
-                style={{ border: `1px dashed ${C.azul700}`, color: C.gris400 }}>
-            ESCUDO UV
-          </span>
+          <Escudo alto={72} />
           <div className="space-y-3.5">
+            <FlechasGrandes ancho={200} />
             <h1 className="text-4xl font-bold leading-tight" style={{ color: C.blanco }}>
               Ventanilla Virtual
             </h1>
-            <div className="h-1 w-14" style={{ background: C.verde600 }} />
             <p className="max-w-sm text-[17px]" style={{ color: C.azul100 }}>
               Solicitud y seguimiento de documentos escolares.
             </p>

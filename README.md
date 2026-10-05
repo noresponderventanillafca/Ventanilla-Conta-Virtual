@@ -106,16 +106,22 @@ costo nunca pasa por Administración; mostrárselo no era solo ruido, era expone
 el expediente de un alumno que no le compete. El filtro está en `_visibles()` y
 también en `puede_ver()`, para que tampoco se abra escribiendo la URL.
 
-**El administrador emite el recibo; no confirma que llegó el dinero.** En el
-proceso real no tiene forma de comprobar el depósito en la cuenta: revisa el
-comprobante y genera el recibo oficial en otro sistema de la universidad. Una
-casilla de «el depósito aparece en el estado de cuenta» le pedía afirmar algo
-que no puede saber, y dejaba un rastro falso en la auditoría; por eso no existe.
+**Administración verifica; Secretaría sube.** Administración coteja la
+referencia declarada contra el recibo que tiene a la mano y confirma que
+corresponde. No sube archivos: el recibo oficial se genera fuera del sistema y
+se entrega en físico a Secretaría, que lo escanea y lo sube junto con el
+documento, en un solo paso. Pedirle además al administrador que lo subiera
+duplicaría el trabajo y dejaría el trámite detenido esperando un archivo que ya
+viaja por otro lado.
 
-Lo que sí es un acto suyo, con nombre y hora, es **subir ese recibo**, y por eso
-es obligatorio para avanzar: el alumno lo recibe como comprobante de su pago y
-Secretaría lo necesita para elaborar el documento. El sistema sigue verificando
-solo lo que puede: monto, duplicados y fechas.
+Una casilla de «el depósito aparece en el estado de cuenta» le pedía afirmar
+algo que no puede saber, y dejaba un rastro falso en la auditoría; por eso no
+existe. Lo que afirma queda dicho en el propio botón: «La referencia coincide».
+El sistema sigue verificando solo lo que puede: duplicados y fechas.
+
+En la entrega, los dos archivos son obligatorios cuando hubo pago. Sin recibo el
+alumno se queda sin comprobante; sin documento el trámite quedaría «entregado»
+sin nada que entregar.
 
 **Los archivos se ven sin descargarlos.** Se sirven en línea con
 `Content-Disposition: inline`, y con `?descargar=1` como adjunto. Obligar a
@@ -129,6 +135,17 @@ accionable, y en pantalla táctil el área para acertarle es diminuta. Los enlac
 conservan la etiqueta `<a>` —navegan, abren en otra pestaña o descargan— pero se
 ven igual; para eso está `BotonEnlace`. Ningún control de solo ícono baja de
 36px de lado.
+
+**La identidad y el estado usan familias de color distintas.** Los colores
+institucionales de la Facultad —azul `#004B8D`, cian `#00BECD`, amarillo
+`#FFC415` y verde `#0D934E`— viven en la barra superior, la franja de chevrones
+y los acentos: son marca y no significan nada. El semáforo de estado es aparte y
+no se toca.
+
+El amarillo institucional nunca se usa como fondo de una etiqueta: se
+confundiría con el ámbar de «en atención» y el semáforo dejaría de leerse. Toda
+la presencia de marca se concentra en la franja de chevrones, para que el resto
+de la interfaz pueda quedarse sobria.
 
 **El semáforo tiene cuatro colores y ninguno decora.** Azul: necesita que
 alguien lo tome (nuevo, o esperando al alumno). Ámbar: alguien lo está
@@ -144,6 +161,29 @@ después lo que espera a alguien, y lo concluido al fondo y atenuado. Una lista
 por fecha obliga a recorrerla entera para encontrar lo que hay que atender.
 La lógica vive en `ordenarPorUrgencia` y `estadoDe` (`TablaTramites.jsx`), en un
 solo lugar, para que un trámite no se vea distinto según quién lo mire.
+
+**Los alumnos tienen vigencia.** Pasados los años que dure la carrera (6 por
+omisión, configurable en Ajustes), pierden el acceso a la ventanilla y lo que
+necesiten se atiende por correo. La depuración se ejecuta a mano desde Padrón,
+con vista previa: borrar datos de alumnos no debe pasar sin que alguien vea
+antes a quiénes alcanza.
+
+Y distingue dos casos, porque no son lo mismo:
+
+- **Nunca hizo un trámite** → se elimina por completo. No hay nada que conservar
+  y su nombre y correo no tienen por qué seguir ahí.
+- **Sí hizo trámites** → pierde el acceso y se borran sus archivos
+  (comprobantes con datos bancarios, documentos escaneados), pero el registro
+  del trámite se conserva: folio, tipo, fechas y quién lo atendió son
+  contabilidad de la facultad, y borrarlos dejaría huecos imposibles de aclarar.
+  La depuración queda anotada en la bitácora del trámite.
+
+**El padrón acepta Excel además de CSV.** Es lo que evita el problema de
+codificación: exportar a CSV desde Excel obliga a elegir «CSV UTF-8» y, si se
+elige mal, los acentos y la ñ llegan corrompidos. Con .xlsx no hay que elegir
+nada. También se puede dar de alta de uno en uno: para un alumno que llega tarde
+o al que se le corrigió la matrícula, preparar una hoja es más trabajo que el
+alta misma.
 
 **La vista completa del programa es de la Coordinación.** Secretaría y
 Administración ven solo los trámites en los que intervinieron, más lo que les
@@ -249,6 +289,16 @@ frontend/
 ejemplos/padron-ejemplo.csv ← formato esperado para la carga del padrón
 ```
 
+## Si sale `ECONNREFUSED` en la consola de Vite
+
+El frontend corre pero el backend no responde. Son **dos terminales a la vez**:
+Flask en una, Vite en la otra. Revisa la terminal de Flask: si muestra un error
+de columna desconocida, falta `python -m scripts.seed --reiniciar`.
+
+El proxy apunta a `127.0.0.1` y no a `localhost` a propósito: en Windows con Node
+moderno, `localhost` se resuelve primero a IPv6 y Flask solo escucha en IPv4, lo
+que produce ese mismo error aunque el backend sí esté corriendo.
+
 ## Si el navegador sale en blanco
 
 Ya no debería: hay una barrera de errores que muestra el detalle técnico en
@@ -295,8 +345,27 @@ usuario (`notificaciones_todas`), configurable desde Ajustes, no una regla fija:
 si la bandeja se le llena puede apagarla y le queda el tablero, que sigue
 mostrándolo todo.
 
-Además: al alumno se le avisa en cada cambio de etapa; al personal cuando el
-trámite cae en su cancha; y nunca se notifica a quien causó el evento. El
+Cuántos correos recibe cada quien en un trámite completo:
+
+- **Alumno: dos.** Cuando su solicitud queda registrada y cuando su documento
+  está listo. Más una excepción: si Administración devuelve su pago. Sin ese
+  aviso se quedaría esperando un documento que nunca va a llegar.
+- **Secretaría, Administración y Coordinación: uno**, al crearse el trámite. No
+  se avisa en cada cambio de etapa: un correo por movimiento termina en que
+  nadie los lee. El avance se sigue desde la ventanilla.
+- **A Administración solo si hay pago.** Un trámite sin costo nunca pasa por
+  ahí, y de hecho ni siquiera puede verlo.
+- **Comentarios:** solo se avisa al alumno, y solo si comentó alguien más. El
+  personal los ve al abrir el trámite; el alumno no está pendiente del sistema.
+
+Nunca se notifica a quien causó el evento. La preferencia
+`notificaciones_todas` viene apagada: encenderla en Ajustes hace que esa persona
+reciba aviso de cada movimiento, a costa de muchos más correos.
+
+Consecuencia a vigilar: Secretaría se entera al inicio, no cuando el trámite
+llega a su cola. En un trámite con línea de captura eso pueden ser días. Su
+bandeja lo muestra, pero si en la práctica se les pasa, la solución es volver a
+avisar al cambiar de etapa. El
 envío corre en segundo plano y un fallo de SMTP no tumba un trámite ya
 guardado. Sin `SMTP_HOST` configurado, los correos se escriben al log: puedes
 probar el flujo completo sin correo institucional.
@@ -309,11 +378,48 @@ probar el flujo completo sin correo institucional.
 - Tabla de días festivos: `dias_habiles_desde` hoy solo descuenta fines de semana.
 - Respaldo diario de base y archivos, en otro servidor, con restauración probada.
 
+## El escudo de la UV
+
+Va en `frontend/public/`, con estos nombres exactos:
+
+```
+public/escudo-uv-blanco.png   versión blanca, para la barra azul y el acceso
+public/escudo-uv.png          versión a color, para fondos claros
+```
+
+PNG con fondo transparente (o SVG, cambiando la extensión en
+`src/componentes/Escudo.jsx`), de al menos 200px de alto. Mientras no existan,
+la interfaz muestra un recuadro punteado en su lugar y nada se rompe.
+
+Pide los archivos oficiales a la Facultad o a Comunicación Universitaria, no los
+saques de una búsqueda de imágenes: suelen estar deformados o desactualizados.
+El componente solo controla el alto, para que nunca se estire.
+
 ## Correo saliente
 
 Sin `SMTP_HOST` los avisos se escriben en la consola: puedes recorrer el flujo
 completo sin servidor de correo. Ajustes tiene un botón para enviarte una prueba
 y verificar la configuración sin provocar un trámite real.
+
+Con Gmail: `smtp.gmail.com`, puerto 587, y una **contraseña de aplicación** —la
+contraseña normal de la cuenta no funciona desde 2022, y las contraseñas de
+aplicación solo aparecen con la verificación en dos pasos activada.
+
+El puerto decide el protocolo: **587 usa STARTTLS y 465 usa SSL directo**. Si se
+mezclan, la conexión se queda esperando un saludo que nunca llega y termina en
+`TimeoutError`, que parece un problema de red sin serlo. El código elige el
+protocolo según el puerto, así que basta cambiar `SMTP_PUERTO`.
+
+Un timeout también aparece cuando la red bloquea la salida por ese puerto, cosa
+común en redes universitarias. Compruébalo antes de revisar el código:
+
+```powershell
+Test-NetConnection smtp.gmail.com -Port 587
+Test-NetConnection smtp.gmail.com -Port 465
+```
+
+Si ninguno conecta, el bloqueo es de la red y no hay configuración que lo
+arregle: hace falta pedirle la salida a sistemas, o probar desde otra conexión.
 
 Con Microsoft 365 (`smtp.office365.com`, puerto 587) puede aparecer
 `SmtpClientAuthentication is disabled for the Mailbox`: la autenticación básica

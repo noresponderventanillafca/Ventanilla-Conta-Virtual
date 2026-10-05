@@ -101,7 +101,10 @@ with app.app_context():
             correo=f"{identificador.lower()}@uv.mx", rol=rol, programa_id=programa.id,
         )
         u.definir_password("cambiar-esta-clave", temporal=True)
-        u.notificaciones_todas = (rol == Rol.COORDINADORA)
+        # Apagada por omisión: la Coordinación recibe el mismo aviso único que
+        # las demás áreas. Puede encenderla desde Ajustes si quiere enterarse
+        # de cada movimiento, a costa de muchos más correos.
+        u.notificaciones_todas = False
         db.session.add(u)
 
     from datetime import date

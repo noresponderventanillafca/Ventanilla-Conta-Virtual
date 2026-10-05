@@ -63,6 +63,8 @@ export default function Ajustes() {
 
         <CuentaBancaria cuenta={cuenta} onGuardado={recargar} />
 
+        <Vigencia />
+
         <Notificaciones />
       </div>
     </Marco>
@@ -404,6 +406,55 @@ function Notificaciones() {
         )}
 
         {mensaje && <Pill tono="verde">{mensaje}</Pill>}
+        <MensajeError>{error}</MensajeError>
+      </div>
+    </Card>
+  );
+}
+
+
+/* Cuántos años puede un alumno usar la ventanilla. La depuración vive en la
+   pantalla de Padrón, junto a los datos que va a borrar. */
+function Vigencia() {
+  const [anios, setAnios] = useState(null);
+  const [editando, setEditando] = useState("");
+  const [error, setError] = useState(null);
+  const [listo, setListo] = useState(false);
+
+  useEffect(() => {
+    api.verVigencia().then((r) => { setAnios(r.anios_vigencia); setEditando(String(r.anios_vigencia)); })
+      .catch((e) => setError(e.message));
+  }, []);
+  if (anios === null) return null;
+
+  const guardar = async () => {
+    setError(null);
+    try {
+      const r = await api.guardarVigencia(Number(editando));
+      setAnios(r.anios_vigencia);
+      setListo(true);
+      setTimeout(() => setListo(false), 2500);
+    } catch (e) { setError(e.message); }
+  };
+
+  return (
+    <Card title="Vigencia de los alumnos">
+      <div className="space-y-4 px-5 py-5">
+        <p className="text-[13px] leading-relaxed" style={{ color: C.gris500 }}>
+          Duración máxima de la carrera. Pasado ese tiempo el alumno pierde el acceso
+          a la ventanilla y lo que necesite se atiende por correo. La depuración se
+          ejecuta desde la pantalla de Padrón.
+        </p>
+        <div className="flex flex-wrap items-end gap-3">
+          <Campo label="Años">
+            <input type="number" min="1" max="20" value={editando}
+                   onChange={(e) => setEditando(e.target.value)}
+                   className="w-24 rounded-md px-3 py-2.5 text-[13px] outline-none"
+                   style={estiloInput} />
+          </Campo>
+          <Boton onClick={guardar} disabled={String(anios) === editando}>Guardar</Boton>
+          {listo && <Pill tono="verde">Vigencia actualizada</Pill>}
+        </div>
         <MensajeError>{error}</MensajeError>
       </div>
     </Card>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
 
 import { C, pesos, fecha } from "../tokens";
 import { api } from "../api/cliente";
@@ -16,7 +16,6 @@ export default function ValidacionPagos() {
   const [cola, setCola] = useState(null);
   const [i, setI] = useState(0);
   const [detalle, setDetalle] = useState(null);
-  const [recibo, setRecibo] = useState(null);
   const [rechazando, setRechazando] = useState(false);
   const [motivo, setMotivo] = useState(MOTIVOS[0]);
   const [error, setError] = useState(null);
@@ -30,7 +29,7 @@ export default function ValidacionPagos() {
     if (!cola?.length) return setDetalle(null);
     const actual = cola[Math.min(i, cola.length - 1)];
     setDetalle(null);
-    setRecibo(null); setRechazando(false);
+    setRechazando(false);
     api.detalle(actual.folio).then(setDetalle).catch((e) => setError(e.message));
   }, [cola, i]);
 
@@ -136,26 +135,24 @@ export default function ValidacionPagos() {
                 </div>
               </Card>
 
-              {/* Aquí no hay casillas de confirmación. El administrador no tiene
-                  forma de comprobar que el dinero cayó en la cuenta, así que
-                  pedírselo sólo dejaría un rastro falso en la auditoría. Lo que
-                  sí es un acto suyo, con nombre y hora, es emitir el recibo
-                  oficial y subirlo. */}
-              <Card title="Recibo oficial">
-                <div className="space-y-3 px-5 py-4">
-                  <p className="text-xs leading-relaxed" style={{ color: C.gris500 }}>
-                    Genera el recibo en el sistema de la universidad y súbelo aquí.
-                    Le llegará al alumno y a Secretaría, que lo necesita para
-                    elaborar el documento.
-                  </p>
-                  <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-[13px]"
-                         style={estiloInput}>
-                    <Upload size={15} color={C.gris400} />
-                    {recibo ? recibo.name : "Selecciona el recibo"}
-                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                           onChange={(e) => setRecibo(e.target.files?.[0] ?? null)} />
-                  </label>
-                </div>
+              {/* Aquí no se sube nada. El recibo se genera fuera del sistema y
+                  se entrega en físico a Secretaría, que lo escanea junto con el
+                  documento. Pedirle además al administrador que lo subiera
+                  duplicaría el trabajo. */}
+              <Card title="Qué sigue si confirmas">
+                <ol className="space-y-2 px-5 py-4">
+                  {["Generas el recibo en el sistema de la universidad.",
+                    "Se lo entregas en físico a Secretaría.",
+                    "Secretaría lo escanea y lo sube junto con el documento."]
+                    .map((paso, i) => (
+                      <li key={i} className="flex gap-3 text-xs leading-relaxed"
+                          style={{ color: C.gris700 }}>
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
+                              style={{ background: C.azul100, color: C.azul700 }}>{i + 1}</span>
+                        {paso}
+                      </li>
+                    ))}
+                </ol>
               </Card>
 
               <MensajeError>{error}</MensajeError>
@@ -181,11 +178,11 @@ export default function ValidacionPagos() {
                 </Card>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {/* Sin recibo no se avanza: Secretaría no puede elaborar el
-                      documento sin él, y el alumno se quedaría sin comprobante. */}
-                  <Boton disabled={!recibo || ocupado}
-                         onClick={() => ejecutar(() => api.emitirRecibo(t.folio, recibo))}>
-                    Enviar recibo y continuar
+                  {/* El texto del botón dice lo que la persona está afirmando:
+                      que la referencia corresponde al recibo que tiene enfrente. */}
+                  <Boton disabled={ocupado}
+                         onClick={() => ejecutar(() => api.confirmarPago(t.folio))}>
+                    La referencia coincide — elaborar recibo
                   </Boton>
                   <Boton variante="peligro" onClick={() => setRechazando(true)}>Rechazar…</Boton>
                   <Boton variante="secundario" onClick={() => navegar(`/tramites/${t.folio}`)}>

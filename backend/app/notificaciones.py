@@ -140,9 +140,16 @@ def _cuerpo(tramite, encabezado, detalle=""):
 
 
 def tramite_iniciado(tramite, alumno):
-    """Un correo al alumno confirmando que su solicitud quedó registrada, y uno
-    a quien le toca atenderla."""
-    etapa = _etapa_actual(tramite)
+    """El único correo que recibe el personal, y el primero de los dos del alumno.
+
+    Se avisa a las tres áreas al crearse el trámite, no cuando les toca actuar.
+    Así cada persona recibe un correo por trámite y no uno por movimiento: un
+    aviso en cada cambio de etapa termina en que nadie los lee.
+
+    A Administración solo se le avisa si hay dinero de por medio. Un trámite sin
+    costo nunca pasa por ahí, y de hecho ni siquiera puede verlo.
+    """
+    from .models import MomentoPago
 
     _en_segundo_plano(
         [tramite.alumno.correo],
@@ -155,34 +162,22 @@ def tramite_iniciado(tramite, alumno):
         ),
     )
 
-    destinos = []
-    if etapa.actor in (Rol.SECRETARIA, Rol.ADMINISTRADOR):
-        destinos += _correos_del_rol(tramite.programa_id, etapa.actor)
-    destinos += _supervisores(tramite.programa_id, alumno)
-    _aviso_de_bandeja(tramite, etapa, destinos)
+    destinos = _correos_del_rol(tramite.programa_id, Rol.SECRETARIA)
+    if tramite.momento_pago != MomentoPago.SIN_COSTO:
+        destinos += _correos_del_rol(tramite.programa_id, Rol.ADMINISTRADOR)
+    destinos += _correos_del_rol(tramite.programa_id, Rol.COORDINADORA)
 
-
-def llego_a_tu_bandeja(tramite, etapa, autor):
-    """Un solo correo por persona: cuando el trámite entra a su cola.
-
-    No se avisa en cada cambio de etapa. Quien atiende no necesita enterarse de
-    lo que hacen los demás; necesita saber cuándo hay algo suyo que hacer, y un
-    correo por movimiento termina en que nadie los lee."""
-    if etapa.actor not in (Rol.SECRETARIA, Rol.ADMINISTRADOR):
-        return
-    destinos = _correos_del_rol(tramite.programa_id, etapa.actor)
-    destinos += _supervisores(tramite.programa_id, autor)
-    _aviso_de_bandeja(tramite, etapa, [d for d in destinos if d != autor.correo])
-
-
-def _aviso_de_bandeja(tramite, etapa, destinos):
+    etapa = _etapa_actual(tramite)
     _en_segundo_plano(
-        list(dict.fromkeys(destinos)),
-        f"[{tramite.folio}] Nuevo trámite por atender",
+        [d for d in dict.fromkeys(destinos) if d != alumno.correo],
+        f"[{tramite.folio}] Nueva solicitud de trámite",
         _cuerpo(
             tramite,
-            f"Hay un trámite esperando en {etapa.actor.value if etapa.actor else 'la ventanilla'}: "
-            f"{etapa.nombre}.",
+            "Se solicitó un trámite nuevo.",
+            f"Empieza en: {etapa.nombre} "
+            f"({etapa.actor.value if etapa.actor else 'la ventanilla'}).\n"
+            "Este es el único aviso de este trámite: el avance se sigue desde la "
+            "ventanilla.\n",
         ),
     )
 

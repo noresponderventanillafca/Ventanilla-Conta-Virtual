@@ -3,6 +3,8 @@ import { LogOut, KeyRound } from "lucide-react";
 
 import { C } from "../tokens";
 import { useSesion } from "../sesion";
+import Chevrones from "./Chevrones";
+import Escudo from "./Escudo";
 
 const NAV = {
   alumno: [["/tramites", "Mis trámites"], ["/documentos", "Documentos"]],
@@ -19,46 +21,46 @@ export default function Marco({ children }) {
 
   return (
     <div className="min-h-screen" style={{ background: C.gris100 }}>
-      <header className="flex flex-wrap items-center gap-4 px-5 py-3.5 sm:px-10"
-              style={{ background: C.azul900 }}>
-        {/* Sustituye este espacio por el escudo oficial que te dé la facultad,
-            respetando proporciones y márgenes del manual de identidad. */}
-        <span className="rounded px-2.5 py-1.5 text-[9px] font-semibold"
-              style={{ border: `1px dashed ${C.gris500}`, color: C.gris400 }}>
-          ESCUDO UV
-        </span>
-        <span className="text-base font-semibold" style={{ color: C.blanco }}>
-          Ventanilla Virtual
-        </span>
-
-        <nav className="flex gap-1">
-          {enlaces.map(([ruta, texto]) => (
-            <Link key={ruta} to={ruta}
-                  className="rounded-md px-3 py-1.5 text-[13px]"
-                  style={{
-                    background: pathname.startsWith(ruta) ? C.azul700 : "transparent",
-                    color: pathname.startsWith(ruta) ? C.blanco : C.gris200,
-                  }}>
-              {texto}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="ml-auto flex items-center gap-4">
-          <span className="text-[13px]" style={{ color: C.gris200 }}>
-            {usuario.nombre}{usuario.rol === "alumno" ? ` · ${usuario.identificador}` : ""}
+      <header style={{ background: C.azul900 }}>
+        <div className="flex flex-wrap items-center gap-4 px-5 py-3.5 sm:px-10">
+          <Escudo alto={34} />
+          <span className="text-base font-semibold" style={{ color: C.blanco }}>
+            Ventanilla Virtual
           </span>
-          <Link to="/password"
-                className="flex items-center gap-1.5 rounded-md px-3 py-2 text-[13px]"
-                style={{ color: C.gris200, border: `1px solid ${C.azul700}` }}>
-            <KeyRound size={15} /> Contraseña
-          </Link>
-          <button onClick={salir}
+
+          <nav className="flex flex-wrap gap-1">
+            {enlaces.map(([ruta, texto]) => (
+              <Link key={ruta} to={ruta}
+                    className="rounded-md px-3 py-2 text-[13px]"
+                    style={{
+                      background: pathname.startsWith(ruta) ? C.azul700 : "transparent",
+                      color: pathname.startsWith(ruta) ? C.blanco : C.gris200,
+                    }}>
+                {texto}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="ml-auto flex flex-wrap items-center gap-3">
+            <span className="text-[13px]" style={{ color: C.gris200 }}>
+              {usuario.nombre}{usuario.rol === "alumno" ? ` · ${usuario.identificador}` : ""}
+            </span>
+            <Link to="/password"
                   className="flex items-center gap-1.5 rounded-md px-3 py-2 text-[13px]"
-                  style={{ color: C.gris200, border: `1px solid ${C.azul700}` }}>
-            <LogOut size={15} /> Salir
-          </button>
+                  style={{ color: C.gris200, border: `1px solid ${C.azul500}` }}>
+              <KeyRound size={15} /> Contraseña
+            </Link>
+            <button onClick={salir}
+                    className="flex items-center gap-1.5 rounded-md px-3 py-2 text-[13px]"
+                    style={{ color: C.gris200, border: `1px solid ${C.azul500}` }}>
+              <LogOut size={15} /> Salir
+            </button>
+          </div>
         </div>
+
+        {/* Toda la presencia de marca vive aquí, para que el resto de la interfaz
+            pueda quedarse sobria y el color siga significando algo. */}
+        <Chevrones alto={10} id="franja-marco" />
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-7 sm:px-8">{children}</main>

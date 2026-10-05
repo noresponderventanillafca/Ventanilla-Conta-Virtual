@@ -77,8 +77,8 @@ export const api = {
   crear: (datos) => formulario("/tramites", datos),
   subirComprobante: (folio, datos) => formulario(`/tramites/${folio}/comprobante`, datos),
   avanzar: (folio, datos) => json(`/tramites/${folio}/avanzar`, datos),
-  entregarDocumento: (folio, documento) => formulario(`/tramites/${folio}/documento`, { documento }),
-  emitirRecibo: (folio, recibo) => formulario(`/tramites/${folio}/recibo`, { recibo }),
+  entregarDocumento: (folio, archivos) => formulario(`/tramites/${folio}/documento`, archivos),
+  confirmarPago: (folio) => json(`/tramites/${folio}/confirmar-pago`),
   rechazarPago: (folio, motivo) => json(`/tramites/${folio}/rechazar-pago`, { motivo }),
   comentar: (folio, texto, adjunto) => formulario(`/tramites/${folio}/comentarios`, { texto, adjunto }),
   urlArchivo: (folio, id) => `/api/tramites/${folio}/archivos/${id}`,
@@ -86,5 +86,10 @@ export const api = {
 
   // Padrón
   padron: () => peticion("/padron"),
+  agregarAlumno: (datos) => json("/padron", datos),
   cargarPadron: (archivo) => formulario("/padron/cargar", { archivo }),
+  revisarDepuracion: () => peticion("/padron/depurar"),
+  depurarPadron: () => json("/padron/depurar", { confirmar: true }),
+  verVigencia: () => peticion("/ajustes/vigencia"),
+  guardarVigencia: (anios_vigencia) => json("/ajustes/vigencia", { anios_vigencia }, "PUT"),
 };

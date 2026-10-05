@@ -38,6 +38,9 @@ export function Card({ title, right, children, className = "" }) {
       {title && (
         <header className="flex flex-wrap items-center gap-3 px-5 py-3.5"
                 style={{ borderBottom: `1px solid ${C.gris200}` }}>
+          {/* Acento fino en cian: da identidad sin competir con el semáforo,
+              que es lo que pasaría con una franja de color rellena. */}
+          <span className="h-4 w-1 shrink-0 rounded-full" style={{ background: C.cian }} />
           <h2 className="text-sm font-semibold" style={{ color: C.azul900 }}>{title}</h2>
           {right && <div className="ml-auto">{right}</div>}
         </header>
@@ -52,7 +55,7 @@ export function InfoCard({ icon: Icon, label, value, sub, right }) {
     <div className="flex items-center gap-4 rounded-lg px-4 py-3.5"
          style={{ background: C.blanco, border: `1px solid ${C.gris200}` }}>
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg"
-           style={{ background: C.azul100 }}>
+           style={{ background: C.cianClaro }}>
         <Icon size={21} color={C.azul700} strokeWidth={1.8} />
       </div>
       <div className="min-w-0 flex-1">

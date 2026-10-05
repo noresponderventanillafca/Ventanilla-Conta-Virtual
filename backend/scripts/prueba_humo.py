@@ -64,7 +64,7 @@ def main():
             u = Usuario(identificador=ident, nombre=nombre, correo=f"{ident}@uv.mx",
                         rol=rol, programa_id=prog.id)
             u.definir_password("contrasena-larga")
-            u.notificaciones_todas = (rol == Rol.COORDINADORA)
+            u.notificaciones_todas = False
             db.session.add(u)
             db.session.flush()
             ids[rol] = u.id
@@ -311,16 +311,18 @@ def main():
         finally:
             N._en_segundo_plano = original
 
-    # Dos correos: la confirmación al alumno y el aviso a quien lo atiende.
+    # Dos correos: la confirmación al alumno y un único aviso a las tres áreas.
     print(f"       correos generados: {len(enviados)}")
     for destinos in enviados:
         print(f"         {destinos}")
     plano = [d for grupo in enviados for d in grupo]
-    if "S23012345@uv.mx" not in plano:
-        fallos.append(("el alumno debe recibir la confirmación", str(enviados)))
-    if "COORD@uv.mx" not in plano:
-        fallos.append(("la coordinación debe recibir el aviso", str(enviados)))
-    avisos_personal = [g for g in enviados if "S23012345@uv.mx" not in g]
+    from collections import Counter
+    veces = Counter(plano)
+    if veces["S23012345@uv.mx"] != 1:
+        fallos.append(("el alumno debe recibir una confirmación", str(enviados)))
+    for correo in ("SEC@uv.mx", "ADM@uv.mx", "COORD@uv.mx"):
+        if veces[correo] != 1:
+            fallos.append((f"{correo} debe recibir exactamente un aviso", str(veces)))
     if any("S23012345@uv.mx" in g and len(g) > 1 for g in enviados):
         fallos.append(("la confirmación del alumno no debe mezclarse con el aviso interno",
                        str(enviados)))
