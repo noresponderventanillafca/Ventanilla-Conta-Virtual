@@ -6,7 +6,7 @@
 # desarrollo todo se vea bien porque el proxy de Vite hace lo mismo.
 #
 # Cambia la URL por la de tu servicio de Render.
-/api/*  https://TU-BACKEND.onrender.com/api/:splat  200
+/api/*  https://ventanilla-conta-virtual.onrender.com/api/:splat  200
 
 # El resto lo resuelve React Router del lado del cliente.
 /*      /index.html                                  200
