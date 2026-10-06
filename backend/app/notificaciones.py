@@ -108,19 +108,38 @@ def _peticion_mailjet(cfg, destinatarios, asunto, cuerpo):
         }).encode("utf-8"),
     )
 
+'''
 
 def _peticion_resend(cfg, destinatarios, asunto, cuerpo):
     return urllib.request.Request(
         "https://api.resend.com/emails",
         method="POST",
         headers={"Authorization": f"Bearer {cfg['CORREO_API_CLAVE']}",
-                 "content-type": "application/json"},
+                 "content-type": "application/json",
+                 'User-Agent': 'VentanillaFCA/1.0'},
         data=json.dumps({
             "from": f"{REMITENTE} <{cfg['CORREO_REMITENTE']}>",
             "to": list(destinatarios), "subject": asunto, "text": cuerpo,
         }).encode("utf-8"),
     )
+'''
 
+def _peticion_resend(cfg, destinatarios, asunto, cuerpo):
+    return urllib.request.Request(
+        "https://api.resend.com/emails",
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {cfg['CORREO_API_CLAVE']}",
+            "Content-Type": "application/json",
+            "User-Agent": "VentanillaVirtual/1.0" # <-- Esta es la línea que soluciona el bloqueo
+        },
+        data=json.dumps({
+            "from": f"{REMITENTE} <{cfg['CORREO_REMITENTE']}>",
+            "to": list(destinatarios), 
+            "subject": asunto, 
+            "text": cuerpo,
+        }).encode("utf-8"),
+    )
 
 PROVEEDORES = {
     "brevo": _peticion_brevo,
