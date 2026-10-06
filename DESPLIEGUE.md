@@ -154,9 +154,21 @@ exigir un dominio propio.
 
 | Proveedor | Gratis | `CORREO_API_CLAVE` |
 |---|---|---|
+| Google Apps Script | 100/día con Gmail, 1500 con Workspace | la clave que tú inventas |
 | Mailjet | 200/día, 6 000/mes | `api_key:api_secret`, con dos puntos en medio |
 | Brevo | 300/día | la clave tal cual |
 | Resend | 100/día, 3 000/mes | la clave tal cual |
+
+**Google Apps Script** es el más confiable de los cuatro para este caso, porque
+no depende de que ningún proveedor te apruebe la cuenta: usas tu propia cuenta
+de Google. Las instrucciones están en `apps-script/LEEME.md`. Necesita una
+variable extra:
+
+```
+CORREO_PROVEEDOR=google
+CORREO_API_URL=      (la URL del script, termina en /exec)
+CORREO_API_CLAVE=    (la clave compartida que pusiste en el script)
+```
 
 En los tres: verifica primero la dirección de remitente, genera la clave, y en
 Render pon

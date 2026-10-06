@@ -108,43 +108,52 @@ def _peticion_mailjet(cfg, destinatarios, asunto, cuerpo):
         }).encode("utf-8"),
     )
 
-'''
 
 def _peticion_resend(cfg, destinatarios, asunto, cuerpo):
     return urllib.request.Request(
         "https://api.resend.com/emails",
         method="POST",
         headers={"Authorization": f"Bearer {cfg['CORREO_API_CLAVE']}",
-                 "content-type": "application/json",
-                 'User-Agent': 'VentanillaFCA/1.0'},
+                 "content-type": "application/json"},
         data=json.dumps({
             "from": f"{REMITENTE} <{cfg['CORREO_REMITENTE']}>",
             "to": list(destinatarios), "subject": asunto, "text": cuerpo,
         }).encode("utf-8"),
     )
-'''
 
-def _peticion_resend(cfg, destinatarios, asunto, cuerpo):
+
+def _peticion_google(cfg, destinatarios, asunto, cuerpo):
+    """Puente en Google Apps Script (ver carpeta apps-script/).
+
+    Último recurso cuando el servidor bloquea SMTP y los servicios de correo
+    transaccional no dejan registrarse. La clave compartida es obligatoria: el
+    script tiene que estar publicado como «cualquier usuario» para que el
+    servidor pueda llamarlo sin una sesión de Google, así que sin clave
+    cualquiera que descubra la URL podría enviar correos desde esa cuenta.
+    """
+    if not cfg.get("CORREO_API_URL"):
+        raise ValueError(
+            "Falta CORREO_API_URL: la dirección del script, la que termina en /exec."
+        )
     return urllib.request.Request(
-        "https://api.resend.com/emails",
+        cfg["CORREO_API_URL"],
         method="POST",
-        headers={
-            "Authorization": f"Bearer {cfg['CORREO_API_CLAVE']}",
-            "Content-Type": "application/json",
-            "User-Agent": "VentanillaVirtual/1.0" # <-- Esta es la línea que soluciona el bloqueo
-        },
+        headers={"content-type": "application/json"},
         data=json.dumps({
-            "from": f"{REMITENTE} <{cfg['CORREO_REMITENTE']}>",
-            "to": list(destinatarios), 
-            "subject": asunto, 
-            "text": cuerpo,
+            "clave": cfg["CORREO_API_CLAVE"],
+            "para": list(destinatarios),
+            "asunto": asunto,
+            "cuerpo": cuerpo,
+            "remitente": REMITENTE,
         }).encode("utf-8"),
     )
+
 
 PROVEEDORES = {
     "brevo": _peticion_brevo,
     "mailjet": _peticion_mailjet,
     "resend": _peticion_resend,
+    "google": _peticion_google,
 }
 
 REMITENTE = "Ventanilla Virtual"
@@ -165,7 +174,23 @@ def _enviar_por_api(cfg, destinatarios, asunto, cuerpo):
     armar = PROVEEDORES[cfg["CORREO_PROVEEDOR"]]
     peticion = armar(cfg, destinatarios, asunto, cuerpo)
     with urllib.request.urlopen(peticion, timeout=int(cfg.get("SMTP_TIMEOUT", 20))) as r:
-        return r.status
+        respuesta = r.read().decode(errors="replace")
+
+    # Apps Script responde 200 aunque el envío haya fallado: el detalle va en el
+    # cuerpo. Sin revisarlo, un error de clave o de cuota pasaría por éxito.
+    if cfg["CORREO_PROVEEDOR"] == "google":
+        try:
+            datos = json.loads(respuesta)
+        except ValueError:
+            raise RuntimeError(
+                "El script no devolvió JSON. Suele significar que la URL no es la "
+                "de la implementación (/exec) o que pide iniciar sesión: revisa "
+                "que esté publicado para «cualquier usuario»."
+            )
+        if datos.get("error"):
+            raise RuntimeError(f"{datos['error']} (código {datos.get('codigo')})")
+
+    return respuesta
 
 
 def _enviar(app, destinatarios, asunto, cuerpo):

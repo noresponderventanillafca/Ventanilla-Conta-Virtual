@@ -397,6 +397,11 @@ El componente solo controla el alto, para que nunca se estire.
 
 ## Correo saliente
 
+Si el servidor bloquea los puertos SMTP —habitual en planes gratuitos— el envío
+se hace por HTTPS. Hay cuatro proveedores soportados; el de Google Apps Script
+(`apps-script/`) es el único que no depende de que nadie te apruebe una cuenta.
+
+
 Sin `SMTP_HOST` los avisos se escriben en la consola: puedes recorrer el flujo
 completo sin servidor de correo. Ajustes tiene un botón para enviarte una prueba
 y verificar la configuración sin provocar un trámite real.
