@@ -51,6 +51,9 @@ class Config:
     SMTP_HOST = os.getenv("SMTP_HOST")
     SMTP_PUERTO = int(os.getenv("SMTP_PUERTO", 587))
     SMTP_TIMEOUT = int(os.getenv("SMTP_TIMEOUT", 20))
+    # Ver notificaciones.py: en servidores que se duermen, el envío en segundo
+    # plano pierde correos sin dejar rastro.
+    CORREO_ASINCRONO = os.getenv("CORREO_ASINCRONO", "").lower() == "true"
     SMTP_USUARIO = os.getenv("SMTP_USUARIO")
     SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
     CORREO_REMITENTE = os.getenv("CORREO_REMITENTE")

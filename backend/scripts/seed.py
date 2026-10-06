@@ -28,8 +28,18 @@ with app.app_context():
     uri = app.config["SQLALCHEMY_DATABASE_URI"] or ""
     destino = uri.rsplit("@", 1)[-1] or uri  # sin credenciales
 
+    # Siempre a la vista: desde una computadora se puede apuntar tanto a la base
+    # local como a la de producción, y equivocarse con --reiniciar sería grave.
+    es_local = any(p in destino for p in ("localhost", "127.0.0.1", "sqlite"))
+    print(f"Base de datos: {destino}")
+    print(f"               {'local' if es_local else '*** REMOTA — probablemente PRODUCCIÓN ***'}")
+    print()
+
     if REINICIAR:
         print(f"Se van a BORRAR todas las tablas de: {destino}")
+        if not es_local:
+            print("Esta base NO es local. Si es la de producción, perderás todos")
+            print("los trámites, archivos registrados y cuentas ya creadas.")
         if input("Escribe BORRAR para confirmar: ").strip() != "BORRAR":
             print("Cancelado. No se tocó nada.")
             raise SystemExit(1)

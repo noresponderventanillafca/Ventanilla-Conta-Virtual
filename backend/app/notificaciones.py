@@ -85,7 +85,16 @@ def _enviar(app, destinatarios, asunto, cuerpo):
             with _conectar(cfg) as servidor:
                 if cfg.get("SMTP_USUARIO"):
                     servidor.login(cfg["SMTP_USUARIO"], cfg["SMTP_PASSWORD"])
-                servidor.send_message(msg)
+                rechazados = servidor.send_message(msg)
+
+            # El éxito también se registra: sin esto no hay forma de distinguir
+            # "salió bien" de "nunca se intentó", que es justo lo que pasa cuando
+            # un correo no llega y el log está en silencio.
+            if rechazados:
+                app.logger.warning("Correo enviado, pero el servidor rechazó a %s",
+                                   list(rechazados))
+            else:
+                app.logger.info("Correo enviado a %s — asunto: %s", destinatarios, asunto)
             return None
         except Exception as error:
             # Un fallo de correo nunca debe tumbar un trámite ya guardado.
@@ -95,12 +104,33 @@ def _enviar(app, destinatarios, asunto, cuerpo):
 
 
 def _en_segundo_plano(destinatarios, asunto, cuerpo):
+    """Envía el correo. Por omisión, ANTES de responder la petición.
+
+    El nombre quedó de cuando se hacía en un hilo aparte. Se cambió porque en un
+    servidor gratuito la instancia puede dormirse o reiniciarse justo después de
+    responder, y entonces el hilo muere y el correo se pierde sin dejar rastro:
+    ni error, ni mensaje en la bandeja de enviados. Imposible de diagnosticar.
+
+    Con unos pocos trámites al día, esperar uno o dos segundos no se nota, y a
+    cambio el envío ocurre o falla con constancia. Si algún día el volumen crece
+    y la espera molesta, CORREO_ASINCRONO=true devuelve el comportamiento
+    anterior, asumiendo ese riesgo.
+    """
     if not destinatarios:
+        # Tampoco esto es silencioso: un aviso sin destinatarios suele significar
+        # que alguien no tiene correo registrado.
+        current_app.logger.info("Sin destinatarios para: %s", asunto)
         return
+
     app = current_app._get_current_object()
-    threading.Thread(
-        target=_enviar, args=(app, destinatarios, asunto, cuerpo), daemon=True
-    ).start()
+
+    if app.config.get("CORREO_ASINCRONO"):
+        threading.Thread(
+            target=_enviar, args=(app, destinatarios, asunto, cuerpo), daemon=True
+        ).start()
+        return
+
+    _enviar(app, destinatarios, asunto, cuerpo)
 
 
 def _enlace(tramite):

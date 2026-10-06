@@ -39,6 +39,8 @@ def verificar_padron():
     # Respuesta idéntica exista o no: no revelamos quién está en el padrón.
     if registro and not registro.activado and registro.curp_prefijo.upper() == curp:
         token = _serializador().dumps({"matricula": matricula})
+        current_app.logger.info("Activación solicitada por %s, enviando a %s",
+                                matricula, registro.correo_institucional)
         N.enlace_de_activacion(registro.correo_institucional, token)
         # El token se devuelve solo en desarrollo, donde no hay SMTP.
         if not current_app.config.get("SMTP_HOST"):
@@ -47,6 +49,12 @@ def verificar_padron():
                 "token_desarrollo": token,
             })
 
+    # Si llegamos aquí no se envió nada: la matrícula no está en el padrón, la
+    # CURP no coincide o la cuenta ya fue activada. La respuesta es idéntica a
+    # propósito, para no revelar quién está registrado; el log sí lo distingue.
+    current_app.logger.info(
+        "Activación solicitada por %s: sin coincidencia en el padrón, no se envió nada.",
+        matricula or "(sin matrícula)")
     return jsonify({"mensaje": "Te enviamos un enlace a tu correo institucional."})
 
 
