@@ -41,6 +41,33 @@ def _cliente(endpoint, clave, secreto, region):
     )
 
 
+def _normalizar_endpoint(endpoint: str) -> tuple[str, str | None]:
+    """El endpoint debe ser solo el de la cuenta, sin el bucket.
+
+    El panel de Cloudflare muestra bien a la vista la URL con el bucket
+    incluido, así que copiarla completa es el error más frecuente. Con esa
+    barra de más, boto3 arma la ruta como `.../bucket/bucket/archivo` y R2
+    responde 403, que parece un problema de permisos sin serlo.
+
+    Se recorta para que el sistema funcione igual, pero se avisa: la variable
+    sigue mal puesta y conviene corregirla.
+    """
+    from urllib.parse import urlparse
+
+    partes = urlparse(endpoint.strip().rstrip("/"))
+    if not partes.scheme:
+        return endpoint, ("S3_ENDPOINT debe empezar con https://")
+
+    limpio = f"{partes.scheme}://{partes.netloc}"
+    if partes.path:
+        return limpio, (
+            f"S3_ENDPOINT traía «{partes.path}» al final. El endpoint es solo el "
+            f"de la cuenta, sin el bucket. Se ignoró esa parte, pero corrígela "
+            f"en la configuración: debe ser {limpio}"
+        )
+    return limpio, None
+
+
 def _s3():
     cfg = current_app.config
     faltan = [c for c in ("S3_ENDPOINT", "S3_CLAVE", "S3_SECRETO", "S3_BUCKET")
@@ -50,7 +77,12 @@ def _s3():
             "El almacenamiento de archivos está mal configurado: faltan "
             + ", ".join(faltan)
         )
-    return _cliente(cfg["S3_ENDPOINT"], cfg["S3_CLAVE"], cfg["S3_SECRETO"],
+
+    endpoint, aviso = _normalizar_endpoint(cfg["S3_ENDPOINT"])
+    if aviso:
+        current_app.logger.warning(aviso)
+
+    return _cliente(endpoint, cfg["S3_CLAVE"], cfg["S3_SECRETO"],
                     cfg.get("S3_REGION", "auto")), cfg["S3_BUCKET"]
 
 
@@ -177,13 +209,15 @@ def comprobar() -> str | None:
     except ErrorDominio as e:
         return str(e)
 
+    _, aviso = _normalizar_endpoint(current_app.config["S3_ENDPOINT"])
+
     clave = "salud/.comprobacion"
     try:
         cliente.put_object(Bucket=bucket, Key=clave, Body=b"ok",
                            ContentType="text/plain")
         cliente.get_object(Bucket=bucket, Key=clave)
         cliente.delete_object(Bucket=bucket, Key=clave)
-        return None
+        return aviso  # None si todo está bien; el aviso si el endpoint trae de más
     except Exception as e:
         return _explicar_s3(e, bucket)
 

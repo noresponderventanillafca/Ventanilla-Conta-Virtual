@@ -145,8 +145,11 @@ sirve para enterarse de un problema antes que los usuarios.
 El mensaje dice exactamente qué revisar. Los dos tropiezos más comunes:
 
 **El endpoint.** Debe ser el de la **cuenta**,
-`https://<id-de-cuenta>.r2.cloudflarestorage.com`, no la URL pública del bucket
-ni la que incluye el nombre del bucket al final.
+`https://<id-de-cuenta>.r2.cloudflarestorage.com`, sin el nombre del bucket al
+final. El panel de Cloudflare muestra bien a la vista la URL con el bucket
+incluido, así que copiarla completa es el error más común: produce un 403 que
+parece de permisos sin serlo. El sistema recorta esa parte para seguir
+funcionando, pero `/api/salud` lo reporta hasta que corrijas la variable.
 
 **El permiso del token.** Tiene que ser **Object Read & Write**. Un token de
 solo lectura deja pasar la comprobación de conexión pero falla al subir el
