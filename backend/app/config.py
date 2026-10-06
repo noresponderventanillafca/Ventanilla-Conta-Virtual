@@ -4,8 +4,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+# Valor de respaldo SOLO para desarrollo. En producción se exige uno real:
+# con esta clave cualquiera que vea el repositorio podría firmarse una cookie
+# de sesión y entrar como coordinación.
+CLAVE_DE_DESARROLLO = "desarrollo-inseguro"
+
+
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "desarrollo-inseguro")
+    SECRET_KEY = os.getenv("SECRET_KEY", CLAVE_DE_DESARROLLO)
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 

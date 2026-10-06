@@ -155,6 +155,19 @@ funcionando, pero `/api/salud` lo reporta hasta que corrijas la variable.
 solo lectura deja pasar la comprobación de conexión pero falla al subir el
 primer comprobante.
 
+### Variables que suelen quedarse vacías
+
+`SECRET_KEY`, `URL_PUBLICA` y `FRONTEND_ORIGIN` no dan error al configurarlas,
+pero las tres importan:
+
+- **Sin `SECRET_KEY`** el sistema ya no arranca en producción, a propósito. Antes
+  funcionaba con una clave por omisión escrita en el repositorio, y cualquiera
+  que la viera podía firmarse una cookie de coordinación.
+- **Sin `URL_PUBLICA`** los correos salen con enlaces rotos. `/api/salud` lo
+  reporta.
+- **Sin `FRONTEND_ORIGIN`** el navegador puede rechazar peticiones si algún día
+  se deja de usar el proxy de Netlify.
+
 ## 6. Comprobar
 
 1. Abre `https://TU-BACKEND.onrender.com/api/salud`. Debe decir `ok` en base de
@@ -168,6 +181,20 @@ primer comprobante.
    la prueba de que los archivos sobreviven, que es el motivo de todo esto.
 
 ---
+
+## Rotar credenciales
+
+Si alguna clave se compartió por error —en una captura de pantalla, un correo o
+un commit—, hay que rotarla; no basta con borrarla de donde se vio:
+
+- **R2**: crea un token nuevo en *Manage API tokens* y elimina el anterior.
+- **Gmail**: revoca la contraseña de aplicación en la cuenta de Google y genera
+  otra.
+- **Aiven**: cambia la contraseña del usuario `avnadmin` desde la consola.
+- **Cloudflare**: elimina el API token expuesto.
+
+Después actualiza las variables en Render. Toma diez minutos y es más barato que
+averiguar después quién entró.
 
 ## Respaldos
 

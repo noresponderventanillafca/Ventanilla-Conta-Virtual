@@ -1,12 +1,46 @@
+import os
+
 from flask import Flask, jsonify, request
 
-from .config import Config
+from .config import Config, CLAVE_DE_DESARROLLO
 from .extensions import db, migrate, login_manager, cors
+
+
+def _revisar_produccion(app):
+    """Falla al arrancar en vez de funcionar mal en silencio.
+
+    Una SECRET_KEY sin configurar no produce ningún error visible: el sistema
+    arranca, la gente entra, y la cookie de sesión queda firmada con una clave
+    que está escrita en el repositorio. Mejor no arrancar.
+    """
+    if app.config.get("FLASK_ENV") != "production" and os.getenv("FLASK_ENV") != "production":
+        return
+
+    problemas = []
+    if app.config.get("SECRET_KEY") in (None, "", CLAVE_DE_DESARROLLO):
+        problemas.append(
+            "SECRET_KEY no está configurada. Sin ella las sesiones se firman con "
+            "una clave pública y cualquiera podría entrar como coordinación."
+        )
+    if not app.config.get("SQLALCHEMY_DATABASE_URI"):
+        problemas.append("DATABASE_URL no está configurada.")
+
+    if problemas:
+        raise RuntimeError(
+            "No se puede arrancar en producción:\n  - " + "\n  - ".join(problemas)
+        )
+
+    # Esto no impide arrancar, pero rompe los correos y conviene verlo en el log.
+    if not app.config.get("URL_PUBLICA"):
+        app.logger.warning(
+            "URL_PUBLICA no está configurada: los enlaces de los correos saldrán rotos."
+        )
 
 
 def crear_app(config=Config):
     app = Flask(__name__)
     app.config.from_object(config)
+    _revisar_produccion(app)
 
     if app.config.get("DETRAS_DE_PROXY"):
         from werkzeug.middleware.proxy_fix import ProxyFix
@@ -86,6 +120,8 @@ def crear_app(config=Config):
             "archivos": archivos,
             "almacenamiento": app.config.get("ALMACENAMIENTO"),
             "correo": "configurado" if app.config.get("SMTP_HOST") else "solo a la consola",
+            "enlaces_de_correo": app.config.get("URL_PUBLICA") or
+                                 "SIN CONFIGURAR — los correos saldrán con enlaces rotos",
         }), (200 if bien else 503)
 
     @app.errorhandler(413)
