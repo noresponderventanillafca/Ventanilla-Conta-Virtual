@@ -119,7 +119,12 @@ def crear_app(config=Config):
             "base_de_datos": base,
             "archivos": archivos,
             "almacenamiento": app.config.get("ALMACENAMIENTO"),
-            "correo": "configurado" if app.config.get("SMTP_HOST") else "solo a la consola",
+            "correo": (
+                f"API de {app.config.get('CORREO_PROVEEDOR')}"
+                if app.config.get("CORREO_PROVEEDOR") != "smtp"
+                else f"SMTP {app.config.get('SMTP_HOST')}:{app.config.get('SMTP_PUERTO')}"
+                if app.config.get("SMTP_HOST") else "solo a la consola"
+            ),
             "enlaces_de_correo": app.config.get("URL_PUBLICA") or
                                  "SIN CONFIGURAR — los correos saldrán con enlaces rotos",
         }), (200 if bien else 503)

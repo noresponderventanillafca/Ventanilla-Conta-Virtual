@@ -48,6 +48,12 @@ class Config:
     # Flask cree que la conexión es HTTP y no manda la cookie marcada Secure.
     DETRAS_DE_PROXY = os.getenv("FLASK_ENV") == "production"
 
+    # "smtp", "brevo", "mailjet" o "resend". Los servidores gratuitos bloquean
+    # los puertos de correo saliente; las API funcionan por HTTPS, que nunca se
+    # bloquea. Hay varias porque conseguir que activen la cuenta es lo difícil.
+    CORREO_PROVEEDOR = os.getenv("CORREO_PROVEEDOR", "smtp").lower()
+    CORREO_API_CLAVE = os.getenv("CORREO_API_CLAVE")
+
     SMTP_HOST = os.getenv("SMTP_HOST")
     SMTP_PUERTO = int(os.getenv("SMTP_PUERTO", 587))
     SMTP_TIMEOUT = int(os.getenv("SMTP_TIMEOUT", 20))

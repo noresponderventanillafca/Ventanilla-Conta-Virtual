@@ -140,6 +140,42 @@ cuenta mientras el servicio duerme, así que no lo despierta.
 `/api/salud` además dice si la base y el almacén de archivos responden, lo que
 sirve para enterarse de un problema antes que los usuarios.
 
+### Si los correos no salen
+
+Síntoma típico en un servidor gratuito: el puerto 587 da `TimeoutError` y el 465
+tampoco entrega nada. **Muchos proveedores bloquean los puertos de correo
+saliente** para evitar spam, y no hay configuración que lo evite.
+
+La salida es enviar por HTTPS en vez de SMTP. Hay tres proveedores soportados,
+y lo difícil no es enviar sino **conseguir que te activen la cuenta**: varios
+revisan a mano los registros hechos con un correo de dominio gratuito. Usa el
+que logres activar; los tres permiten verificar una sola dirección en lugar de
+exigir un dominio propio.
+
+| Proveedor | Gratis | `CORREO_API_CLAVE` |
+|---|---|---|
+| Mailjet | 200/día, 6 000/mes | `api_key:api_secret`, con dos puntos en medio |
+| Brevo | 300/día | la clave tal cual |
+| Resend | 100/día, 3 000/mes | la clave tal cual |
+
+En los tres: verifica primero la dirección de remitente, genera la clave, y en
+Render pon
+
+```
+CORREO_PROVEEDOR=mailjet        (o brevo, o resend)
+CORREO_API_CLAVE=
+CORREO_REMITENTE=               (la dirección verificada, idéntica)
+```
+
+Las variables `SMTP_*` dejan de usarse. `/api/salud` muestra por dónde se está
+enviando.
+
+El error más común es olvidar la verificación del remitente: la API responde con
+un rechazo que el sistema te muestra completo, incluyendo el código y el motivo.
+
+Con el esquema de avisos actual, un trámite genera cinco o seis correos, así que
+cualquiera de los tres planes sobra.
+
 ### Si `/api/salud` falla en los archivos
 
 El mensaje dice exactamente qué revisar. Los dos tropiezos más comunes:

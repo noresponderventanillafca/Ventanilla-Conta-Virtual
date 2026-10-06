@@ -13,8 +13,12 @@ Dos reglas que sostienen todo el proyecto:
    todo.
 """
 
+import base64
+import json
 import smtplib
 import threading
+import urllib.error
+import urllib.request
 from email.message import EmailMessage
 
 from flask import current_app
@@ -66,10 +70,120 @@ def _explicar(error, cfg):
     return f"{type(error).__name__}: {error}"
 
 
+def _peticion_brevo(cfg, destinatarios, asunto, cuerpo):
+    return urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email",
+        method="POST",
+        headers={"api-key": cfg["CORREO_API_CLAVE"],
+                 "content-type": "application/json", "accept": "application/json"},
+        data=json.dumps({
+            "sender": {"email": cfg["CORREO_REMITENTE"], "name": REMITENTE},
+            "to": [{"email": c} for c in destinatarios],
+            "subject": asunto, "textContent": cuerpo,
+        }).encode("utf-8"),
+    )
+
+
+def _peticion_mailjet(cfg, destinatarios, asunto, cuerpo):
+    """Mailjet usa dos claves separadas por dos puntos en CORREO_API_CLAVE:
+    api_key:api_secret."""
+    clave = cfg["CORREO_API_CLAVE"]
+    if ":" not in clave:
+        raise ValueError(
+            "Para Mailjet, CORREO_API_CLAVE debe ser «api_key:api_secret», "
+            "con los dos valores separados por dos puntos."
+        )
+    autorizacion = base64.b64encode(clave.encode()).decode()
+    return urllib.request.Request(
+        "https://api.mailjet.com/v3.1/send",
+        method="POST",
+        headers={"Authorization": f"Basic {autorizacion}",
+                 "content-type": "application/json"},
+        data=json.dumps({
+            "Messages": [{
+                "From": {"Email": cfg["CORREO_REMITENTE"], "Name": REMITENTE},
+                "To": [{"Email": c} for c in destinatarios],
+                "Subject": asunto, "TextPart": cuerpo,
+            }]
+        }).encode("utf-8"),
+    )
+
+
+def _peticion_resend(cfg, destinatarios, asunto, cuerpo):
+    return urllib.request.Request(
+        "https://api.resend.com/emails",
+        method="POST",
+        headers={"Authorization": f"Bearer {cfg['CORREO_API_CLAVE']}",
+                 "content-type": "application/json"},
+        data=json.dumps({
+            "from": f"{REMITENTE} <{cfg['CORREO_REMITENTE']}>",
+            "to": list(destinatarios), "subject": asunto, "text": cuerpo,
+        }).encode("utf-8"),
+    )
+
+
+PROVEEDORES = {
+    "brevo": _peticion_brevo,
+    "mailjet": _peticion_mailjet,
+    "resend": _peticion_resend,
+}
+
+REMITENTE = "Ventanilla Virtual"
+
+
+def _enviar_por_api(cfg, destinatarios, asunto, cuerpo):
+    """Envío por HTTPS en lugar de SMTP.
+
+    Los proveedores gratuitos de servidores bloquean los puertos de correo
+    saliente para evitar spam, y entonces SMTP da timeout sin remedio. El puerto
+    443 nunca se bloquea, porque es el de la web.
+
+    Hay varios proveedores porque lo difícil no es enviar, sino conseguir que te
+    activen la cuenta: varios revisan a mano los registros hechos con un correo
+    de dominio gratuito. Todos los de aquí permiten verificar una sola dirección
+    en vez de exigir un dominio propio.
+    """
+    armar = PROVEEDORES[cfg["CORREO_PROVEEDOR"]]
+    peticion = armar(cfg, destinatarios, asunto, cuerpo)
+    with urllib.request.urlopen(peticion, timeout=int(cfg.get("SMTP_TIMEOUT", 20))) as r:
+        return r.status
+
+
 def _enviar(app, destinatarios, asunto, cuerpo):
     """Devuelve None si salió bien, o el motivo en texto si falló."""
     with app.app_context():
         cfg = app.config
+
+        proveedor = cfg.get("CORREO_PROVEEDOR", "smtp")
+        if proveedor in PROVEEDORES:
+            if not cfg.get("CORREO_API_CLAVE"):
+                motivo = f"Falta CORREO_API_CLAVE para enviar por la API de {proveedor}."
+                app.logger.error(motivo)
+                return motivo
+            if not cfg.get("CORREO_REMITENTE"):
+                motivo = "Falta CORREO_REMITENTE, que debe ser la dirección verificada."
+                app.logger.error(motivo)
+                return motivo
+            try:
+                _enviar_por_api(cfg, destinatarios, asunto, cuerpo)
+                app.logger.info("Correo enviado a %s — asunto: %s", destinatarios, asunto)
+                return None
+            except urllib.error.HTTPError as e:
+                detalle = e.read().decode(errors="replace")[:300]
+                motivo = (f"La API de {proveedor} rechazó el envío (HTTP {e.code}): "
+                          f"{detalle}. Las dos causas habituales son la clave y que "
+                          f"{cfg.get('CORREO_REMITENTE')} no esté verificado como "
+                          f"remitente en {proveedor}.")
+                app.logger.error(motivo)
+                return motivo
+            except ValueError as e:
+                app.logger.error(str(e))
+                return str(e)
+            except Exception as e:
+                motivo = f"No se pudo llamar a la API de correo: {type(e).__name__}: {e}"
+                app.logger.error(motivo)
+                return motivo
+
         if not cfg.get("SMTP_HOST"):
             # En desarrollo no hay SMTP: se registra para poder verificarlo
             # sin depender del correo institucional.
