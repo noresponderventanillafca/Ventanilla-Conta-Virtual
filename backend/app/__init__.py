@@ -115,7 +115,7 @@ def crear_app(config=Config):
 
         archivos = comprobar() or "ok"
         bien = base == "ok" and archivos == "ok"
-        return jsonify({
+        cuerpo = {
             "base_de_datos": base,
             "archivos": archivos,
             "almacenamiento": app.config.get("ALMACENAMIENTO"),
@@ -127,7 +127,16 @@ def crear_app(config=Config):
             ),
             "enlaces_de_correo": app.config.get("URL_PUBLICA") or
                                  "SIN CONFIGURAR — los correos saldrán con enlaces rotos",
-        }), (200 if bien else 503)
+        }
+
+        # La comprobación de la vía de correo va aparte, con ?correo=1: habla con
+        # un servicio externo, y el monitor que llama a /api/salud cada diez
+        # minutos para que Render no se duerma no tiene por qué pagar esa espera.
+        if request.args.get("correo"):
+            from .notificaciones import comprobar_ruta
+            cuerpo["ruta_de_correo"] = comprobar_ruta(app.config) or "no aplica"
+
+        return jsonify(cuerpo), (200 if bien else 503)
 
     @app.errorhandler(413)
     def archivo_grande(_):

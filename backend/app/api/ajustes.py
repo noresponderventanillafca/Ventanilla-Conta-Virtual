@@ -226,7 +226,10 @@ def guardar_notificaciones():
 def probar_correo():
     """Manda un correo a quien lo pide. Sirve para verificar la configuración
     del servidor sin tener que provocar un trámite real."""
-    if not current_app.config.get("SMTP_HOST"):
+    # La vía puede ser SMTP o una API por HTTPS. Comprobar solo SMTP_HOST
+    # rechazaba una configuración correcta de Apps Script.
+    proveedor = current_app.config.get("CORREO_PROVEEDOR", "smtp")
+    if proveedor == "smtp" and not current_app.config.get("SMTP_HOST"):
         return jsonify({
             "error": "No hay servidor de correo configurado. Mientras tanto, los "
                      "avisos se escriben en la consola del servidor."

@@ -187,8 +187,27 @@ def _enviar_por_api(cfg, destinatarios, asunto, cuerpo):
                 "de la implementación (/exec) o que pide iniciar sesión: revisa "
                 "que esté publicado para «cualquier usuario»."
             )
-        if datos.get("error"):
-            raise RuntimeError(f"{datos['error']} (código {datos.get('codigo')})")
+        # El error puede venir en «error» o, si el script es otra versión, como
+        # {"status":"error","message":...}. Hay que mirar las dos formas.
+        if datos.get("error") or str(datos.get("status", "")).lower() == "error":
+            detalle = datos.get("error") or datos.get("message") or "sin detalle"
+            codigo = datos.get("codigo")
+            raise RuntimeError(
+                f"{detalle} (código {codigo})" if codigo else str(detalle)
+            )
+
+        # Y exigir una confirmación explícita, no conformarse con que no diga
+        # «error». Un script que responde cualquier otra cosa se daba por bueno,
+        # y el sistema informaba un envío que nunca ocurrió.
+        if "enviado" not in datos:
+            raise RuntimeError(
+                f"El script respondió {respuesta[:200]}, que no confirma el envío. "
+                "Casi siempre es una versión antigua del script: debe ser el de "
+                "apps-script/Codigo.gs, que espera los campos «para», «asunto» y "
+                "«cuerpo» y responde con «enviado». Después de pegarlo hay que "
+                "crear una implementación nueva: editar el código no cambia lo "
+                "que sirve la URL /exec."
+            )
 
     return respuesta
 
@@ -199,12 +218,22 @@ def _enviar(app, destinatarios, asunto, cuerpo):
         cfg = app.config
 
         proveedor = cfg.get("CORREO_PROVEEDOR", "smtp")
+        if proveedor not in PROVEEDORES and proveedor != "smtp":
+            # Un valor mal escrito caía a SMTP en silencio, y el diagnóstico
+            # acababa en el puerto equivocado.
+            motivo = (f"CORREO_PROVEEDOR dice «{proveedor}», que no se reconoce. "
+                      f"Los valores válidos son: smtp, {', '.join(sorted(PROVEEDORES))}.")
+            app.logger.error(motivo)
+            return motivo
+
         if proveedor in PROVEEDORES:
             if not cfg.get("CORREO_API_CLAVE"):
                 motivo = f"Falta CORREO_API_CLAVE para enviar por la API de {proveedor}."
                 app.logger.error(motivo)
                 return motivo
-            if not cfg.get("CORREO_REMITENTE"):
+            # Apps Script envía desde la cuenta de Google que publica el script,
+            # así que ahí no hay remitente que verificar; los demás proveedores sí.
+            if proveedor != "google" and not cfg.get("CORREO_REMITENTE"):
                 motivo = "Falta CORREO_REMITENTE, que debe ser la dirección verificada."
                 app.logger.error(motivo)
                 return motivo
@@ -229,8 +258,17 @@ def _enviar(app, destinatarios, asunto, cuerpo):
                 return motivo
 
         if not cfg.get("SMTP_HOST"):
-            # En desarrollo no hay SMTP: se registra para poder verificarlo
-            # sin depender del correo institucional.
+            # En desarrollo no hay SMTP: se registra para poder verificarlo sin
+            # depender del correo institucional. En producción, simular es peor
+            # que fallar: el sistema informaba un envío correcto y nadie recibía
+            # nada, que es el fallo más difícil de encontrar.
+            if cfg.get("FLASK_ENV") == "production":
+                motivo = ("No hay por dónde enviar: ni CORREO_PROVEEDOR ni SMTP_HOST "
+                          "están configurados. Para el puente de Apps Script hacen "
+                          "falta CORREO_PROVEEDOR=google, CORREO_API_URL y "
+                          "CORREO_API_CLAVE.")
+                app.logger.error(motivo)
+                return motivo
             app.logger.info("[correo simulado] %s -> %s\n%s", asunto, destinatarios, cuerpo)
             return None
         try:
@@ -437,6 +475,45 @@ def enlace_de_restablecimiento(correo, token):
         "El enlace vence en 2 horas y solo se puede usar una vez.\n"
         "Si no lo solicitaste, ignora este mensaje: tu contraseña no cambió.\n",
     )
+
+
+def comprobar_ruta(cfg):
+    """Revisa la vía de salida SIN enviar nada. Devuelve un texto descriptivo.
+
+    Para el puente de Apps Script llama a su doGet, que responde
+    {"estado":"activo", "restantes": N}. Es la comprobación que faltaba: una URL
+    sin publicar, publicada solo para «yo mismo», o de una implementación vieja
+    se detecta aquí en lugar de descubrirse cuando un alumno no recibe su aviso.
+    """
+    proveedor = cfg.get("CORREO_PROVEEDOR", "smtp")
+    if proveedor != "google":
+        return None
+
+    url = cfg.get("CORREO_API_URL")
+    if not url:
+        return "falta CORREO_API_URL (la dirección del script, termina en /exec)"
+    if not url.rstrip("/").endswith("/exec"):
+        return (f"CORREO_API_URL termina en «{url.rsplit('/', 1)[-1]}» y debería "
+                "terminar en /exec. La que acaba en /dev solo funciona con tu "
+                "sesión de Google abierta.")
+    try:
+        with urllib.request.urlopen(url, timeout=15) as r:
+            cuerpo = r.read().decode(errors="replace")
+    except Exception as e:
+        return f"no se pudo abrir el script: {type(e).__name__}: {e}"
+
+    try:
+        datos = json.loads(cuerpo)
+    except ValueError:
+        return ("el script no devolvió JSON, sino HTML. Suele ser la pantalla de "
+                "inicio de sesión: la implementación debe tener acceso para "
+                "«cualquier usuario».")
+    if datos.get("estado") != "activo":
+        return (f"el script respondió {cuerpo[:150]}. Se esperaba "
+                "{\"estado\":\"activo\"}: es una implementación anterior a "
+                "apps-script/Codigo.gs, y crear una implementación nueva es lo "
+                "que cambia lo que sirve la URL.")
+    return f"ok, quedan {datos.get('restantes', '?')} correos hoy"
 
 
 def prueba(correo):

@@ -51,7 +51,10 @@ class Config:
     # "smtp", "google", "brevo", "mailjet" o "resend". Los servidores gratuitos bloquean
     # los puertos de correo saliente; las API funcionan por HTTPS, que nunca se
     # bloquea. Hay varias porque conseguir que activen la cuenta es lo difícil.
-    CORREO_PROVEEDOR = os.getenv("CORREO_PROVEEDOR", "smtp").lower()
+    # strip() además de lower(): un espacio al final, que el panel de Render no
+    # muestra, haría que «google » no coincidiera y el envío se fuera por SMTP
+    # sin avisar.
+    CORREO_PROVEEDOR = os.getenv("CORREO_PROVEEDOR", "smtp").strip().lower()
     CORREO_API_CLAVE = os.getenv("CORREO_API_CLAVE")
     # Solo para CORREO_PROVEEDOR=google: la URL del script, termina en /exec.
     CORREO_API_URL = os.getenv("CORREO_API_URL")

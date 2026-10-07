@@ -188,6 +188,59 @@ un rechazo que el sistema te muestra completo, incluyendo el código y el motivo
 Con el esquema de avisos actual, un trámite genera cinco o seis correos, así que
 cualquiera de los tres planes sobra.
 
+### Si ningún proveedor te acepta: el puente de Apps Script
+
+Pasa: Mailjet bloquea, Resend no entrega a Gmail, Brevo no deja ni registrarse.
+La salida es `apps-script/Codigo.gs`, que envía con una cuenta de Google normal y
+responde por HTTPS, que es lo que nunca se bloquea.
+
+Publicarlo (los pasos están también en la cabecera del archivo):
+
+1. `script.google.com` → nuevo proyecto → pega **`apps-script/Codigo.gs`
+   completo**, reemplazando lo que haya.
+2. *Configuración del proyecto → Propiedades del script* → agrega
+   `CLAVE_COMPARTIDA` con una cadena larga y aleatoria. No la escribas dentro del
+   código: ese archivo está en el repositorio.
+3. *Implementar → **Nueva implementación*** → Aplicación web, *Ejecutar como:*
+   **Yo**, *Quién tiene acceso:* **Cualquier usuario**.
+4. Autoriza el permiso de enviar correo. Google avisa que la app «no está
+   verificada»: *Configuración avanzada → Ir a (no seguro)*. Es tu propio script.
+5. Copia la URL que termina en **`/exec`**.
+
+En Render:
+
+```
+CORREO_PROVEEDOR=google
+CORREO_API_URL=            (la que termina en /exec)
+CORREO_API_CLAVE=          (la misma CLAVE_COMPARTIDA del paso 2)
+```
+
+Las `SMTP_*` dejan de usarse. El remitente es la cuenta de Google que publica el
+script, así que aquí no hay dirección que verificar.
+
+**Lo que más se atora:** una implementación nueva es lo único que cambia lo que
+sirve la URL. Editar el código y guardar **no** actualiza el `/exec` publicado:
+sigue sirviendo la versión anterior, y el síntoma es un sistema que informa el
+envío mientras no sale nada. Cada vez que cambies el script, *Implementar → Nueva
+implementación*.
+
+Para comprobar la publicación sin gastar un correo, abre:
+
+```
+https://TU-BACKEND.onrender.com/api/salud?correo=1
+```
+
+`ruta_de_correo` debe decir `ok, quedan N correos hoy`. Si dice otra cosa, el
+mensaje señala qué revisar: una URL `/dev` en lugar de `/exec`, una
+implementación anterior a este script, o un acceso que no es «cualquier usuario»
+—que se reconoce porque el script responde la pantalla de inicio de sesión en vez
+de JSON—. También puedes abrir la URL `/exec` directamente en el navegador: debe
+responder `{"estado":"activo","restantes":…}`.
+
+Límite: 100 destinatarios al día con una cuenta de Gmail gratuita, 1 500 con
+Workspace. La respuesta dice cuántos quedan, y al agotarse el sistema avisa en
+vez de callar.
+
 ### Si `/api/salud` falla en los archivos
 
 El mensaje dice exactamente qué revisar. Los dos tropiezos más comunes:
@@ -223,7 +276,9 @@ pero las tres importan:
 2. Abre el sitio de Netlify: aparece la pantalla de acceso.
 3. Entra con la coordinación y cambia la contraseña temporal. Si la pantalla
    carga pero el login falla, revisa `_redirects`.
-4. En Ajustes, usa *Enviar correo de prueba*. Si falla, el mensaje dice por qué.
+4. En Ajustes, usa *Enviar correo de prueba*. Si falla, el mensaje dice por qué —
+   y si dice que salió bien, salió: el sistema ya no da por bueno un envío que el
+   proveedor no confirmó.
 5. Crea un trámite completo de prueba y descarga el documento final.
 6. **Fuerza un redespliegue en Render y vuelve a descargar ese documento.** Es
    la prueba de que los archivos sobreviven, que es el motivo de todo esto.
