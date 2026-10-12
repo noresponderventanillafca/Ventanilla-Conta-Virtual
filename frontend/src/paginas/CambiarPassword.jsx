@@ -51,20 +51,20 @@ export default function CambiarPassword({ forzado = false }) {
       <Campo label="Contraseña actual">
         <input type="password" value={actual} onChange={(e) => setActual(e.target.value)}
                autoComplete="current-password"
-               className="w-full rounded-md px-3.5 py-3 text-sm outline-none" style={estiloInput} />
+               className="campo-texto w-full rounded-md px-3.5 py-3 text-sm" style={estiloInput} />
       </Campo>
 
       <Campo label="Nueva contraseña"
              ayuda="Mínimo 10 caracteres. Una frase que recuerdes es mejor que algo corto y complicado.">
         <input type="password" value={nueva} onChange={(e) => setNueva(e.target.value)}
                autoComplete="new-password"
-               className="w-full rounded-md px-3.5 py-3 text-sm outline-none" style={estiloInput} />
+               className="campo-texto w-full rounded-md px-3.5 py-3 text-sm" style={estiloInput} />
       </Campo>
 
       <Campo label="Repite la nueva contraseña">
         <input type="password" value={repetida} onChange={(e) => setRepetida(e.target.value)}
                autoComplete="new-password"
-               className="w-full rounded-md px-3.5 py-3 text-sm outline-none" style={estiloInput} />
+               className="campo-texto w-full rounded-md px-3.5 py-3 text-sm" style={estiloInput} />
       </Campo>
 
       <MensajeError>{error}</MensajeError>

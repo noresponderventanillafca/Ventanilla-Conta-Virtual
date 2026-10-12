@@ -161,7 +161,7 @@ export default function ValidacionPagos() {
                 <Card title="Motivo del rechazo">
                   <div className="space-y-3 px-5 py-4">
                     <select value={motivo} onChange={(e) => setMotivo(e.target.value)}
-                            className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput}>
+                            className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput}>
                       {MOTIVOS.map((m) => <option key={m}>{m}</option>)}
                     </select>
                     <p className="text-[11px]" style={{ color: C.gris500 }}>

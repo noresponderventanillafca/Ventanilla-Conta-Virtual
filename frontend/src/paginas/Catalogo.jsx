@@ -51,11 +51,11 @@ export default function Catalogo() {
 
         <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[320px_1fr] lg:items-start">
           <nav className="space-y-2">
-            <div className="flex items-center gap-2 rounded-md px-3 py-2.5" style={estiloInput}>
+            <div className="caja-campo flex items-center gap-2 rounded-md px-3 py-2.5" style={estiloInput}>
               <Search size={15} color={C.gris400} />
               <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)}
                      placeholder="Buscar documento"
-                     className="w-full text-[13px] outline-none" style={{ border: "none" }} />
+                     className="campo-texto w-full text-[13px]" style={{ border: "none" }} />
             </div>
 
             {filtrados.length === 0 && (

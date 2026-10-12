@@ -82,7 +82,7 @@ export default function Comentarios({ tramite, onActualizar }) {
             value={texto} rows={2}
             onChange={(e) => setTexto(e.target.value)}
             placeholder="Escribe un comentario sobre este trámite…"
-            className="w-full rounded-md px-3.5 py-3 text-[13px] outline-none"
+            className="campo-texto w-full rounded-md px-3.5 py-3 text-[13px]"
             style={estiloInput}
           />
           <MensajeError>{error}</MensajeError>

@@ -82,7 +82,7 @@ export default function NuevaSolicitud() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
               <Campo label="¿Qué documento necesitas?">
                 <select value={tipoId} onChange={(e) => { setTipoId(e.target.value); setError(null); }}
-                        className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput}>
+                        className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput}>
                   {documentos.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.nombre} — {d.costo === 0 ? "sin costo" : pesos(d.costo)}
@@ -129,7 +129,7 @@ export default function NuevaSolicitud() {
               <textarea rows={3} value={observaciones}
                         onChange={(e) => setObservaciones(e.target.value)}
                         placeholder="Opcional"
-                        className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none"
+                        className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]"
                         style={estiloInput} />
             </Campo>
           </div>
@@ -202,14 +202,14 @@ export default function NuevaSolicitud() {
                   <Campo label="Fecha del depósito">
                     <input type="date" value={pago.fecha_deposito}
                            onChange={(e) => setPago({ ...pago, fecha_deposito: e.target.value })}
-                           className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput} />
+                           className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput} />
                   </Campo>
                   <Campo label="Número de operación"
                          ayuda="Completo. Es lo que distingue un depósito de otro.">
                     <input value={pago.referencia_operacion}
                            onChange={(e) => setPago({ ...pago, referencia_operacion: e.target.value })}
                            placeholder="Clave de rastreo o folio"
-                           className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput} />
+                           className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput} />
                   </Campo>
                 </div>
 

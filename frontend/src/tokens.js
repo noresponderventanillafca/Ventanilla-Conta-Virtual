@@ -20,7 +20,11 @@ export const C = {
   azul900: "#00335F",
   azul700: "#004B8D",
   azul500: "#1C6FB5",
+  azul200: "#C9DEF2",
   azul100: "#E4EEF8",
+  // Solo para el momento en que se pulsa un botón azul. Más oscuro que
+  // azul900 a propósito: si fuera igual, el clic no se notaría.
+  azul950: "#00264A",
   cian: "#00BECD",
   cianClaro: "#E0F7F9",
   amarillo: "#FFC415",
@@ -33,8 +37,11 @@ export const C = {
   rojo600: "#B3261E",
   rojo100: "#FBE9E7",
 
+  rojo200: "#F5CFCC",
+
   // Neutros
   gris700: "#3A4550",
+  gris300: "#C8D1D8",
   gris500: "#5F6B76",
   gris400: "#8A959E",
   gris200: "#DDE3E8",

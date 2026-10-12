@@ -14,6 +14,86 @@ body {
    no es opcional. */
 :focus-visible { outline: 2px solid #00426A; outline-offset: 2px; }
 
+/* ---------------------------------------------------------------------
+   Botones
+
+   Los colores llegan como variables CSS desde ui.jsx, para que la paleta
+   siga viviendo en tokens.js y no quede duplicada aquí. Lo que aporta
+   esta hoja es lo único que un `style` en línea NO puede expresar:
+   :hover, :active y :focus-visible. Antes todo era inline, así que los
+   botones no daban ninguna señal de estar vivos.
+   --------------------------------------------------------------------- */
+.btn {
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  border: 1px solid var(--btn-bd, transparent);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 120ms ease, border-color 120ms ease,
+              box-shadow 120ms ease, transform 60ms ease;
+}
+
+.btn:not(:disabled):hover {
+  background: var(--btn-bg-hover);
+  border-color: var(--btn-bd-hover, var(--btn-bd, transparent));
+}
+
+/* El hundimiento de 1px es lo que hace que el clic se sienta, más que el
+   cambio de color: confirma la pulsación incluso antes de que la pantalla
+   siguiente cargue. */
+.btn:not(:disabled):active {
+  background: var(--btn-bg-active);
+  transform: translateY(1px);
+}
+
+.btn:disabled { cursor: not-allowed; }
+
+/* ---------------------------------------------------------------------
+   Campos de texto
+
+   El borde vive aquí y no en un `style` en línea. Mientras estuvo en línea,
+   la regla de foco de más abajo nunca llegaba a aplicarse —un estilo en
+   línea gana a una clase— y el campo activo se veía igual que los demás.
+   Los colores vienen de tokens.js, publicados como variables en main.jsx.
+   --------------------------------------------------------------------- */
+.campo-texto {
+  border: 1px solid var(--gris200);
+  background: var(--blanco);
+  color: var(--gris700);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.campo-texto:hover:not(:disabled):not(:focus) { border-color: var(--gris300); }
+.campo-texto:focus {
+  outline: none;
+  border-color: var(--azul500);
+  /* El halo hace el trabajo cuando el campo no tiene borde, como los
+     buscadores que van dentro de una tarjeta. */
+  box-shadow: 0 0 0 3px rgba(28, 111, 181, 0.16);
+}
+.campo-texto:disabled { background: var(--gris100); color: var(--gris400); }
+
+/* Caja con aspecto de campo que no es un campo: el recuadro de subir archivo
+   y los buscadores que llevan una lupa al lado del input. */
+.caja-campo {
+  border: 1px solid var(--gris200);
+  background: var(--blanco);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+/* Cuando el buscador de dentro recibe el foco, el que se ilumina es el
+   recuadro entero. Sin esto aparecía un halo dentro de otro recuadro, que se
+   lee como un error de dibujo. */
+.caja-campo:has(.campo-texto:focus) {
+  border-color: var(--azul500);
+  box-shadow: 0 0 0 3px rgba(28, 111, 181, 0.16);
+}
+.caja-campo .campo-texto:focus { box-shadow: none; }
+
+/* Las de subir archivo sí son pulsables, así que responden como tales. */
+label.caja-campo { cursor: pointer; }
+label.caja-campo:hover { border-color: var(--azul500); background: var(--azul100); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  .btn:not(:disabled):active { transform: none; }
 }

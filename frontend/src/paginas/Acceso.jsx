@@ -1,11 +1,11 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 import { C } from "../tokens";
 import { api } from "../api/cliente";
 import { useSesion } from "../sesion";
-import { FlechasGrandes } from "../componentes/Chevrones";
-import Escudo from "../componentes/Escudo";
-import { Boton, Campo, MensajeError, estiloInput } from "../componentes/ui";
+import MarcoAcceso from "../componentes/MarcoAcceso";
+import { Boton, Campo, MensajeError, Aviso, estiloInput, claseInput } from "../componentes/ui";
 
 /* La CURP prueba que la persona está en el padrón y ahí termina su papel.
    No es contraseña: sus primeros 10 caracteres se derivan del nombre y la
@@ -13,52 +13,19 @@ import { Boton, Campo, MensajeError, estiloInput } from "../componentes/ui";
    El enlace al correo institucional es lo que prueba que es el titular. */
 
 export default function Acceso() {
-  const { entrar, setUsuario } = useSesion();
+  const { entrar } = useSesion();
   const [modo, setModo] = useState("login");
 
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row">
-      <aside className="flex flex-col justify-between px-8 py-12 lg:w-[520px] lg:px-16 lg:py-16"
-             style={{ background: C.azul900 }}>
-        <div className="space-y-7">
-          <Escudo alto={72} />
-          <div className="space-y-3.5">
-            <FlechasGrandes ancho={200} />
-            <h1 className="text-4xl font-bold leading-tight" style={{ color: C.blanco }}>
-              Ventanilla Virtual
-            </h1>
-            <p className="max-w-sm text-[17px]" style={{ color: C.azul100 }}>
-              Solicitud y seguimiento de documentos escolares.
-            </p>
-          </div>
-        </div>
-        <div className="mt-12 space-y-1">
-          <p className="text-[13px] font-medium" style={{ color: C.blanco }}>
-            Facultad de Contaduría y Administración
-          </p>
-          <p className="text-[13px]" style={{ color: C.gris400 }}>
-            Licenciatura en Contaduría — Modalidad Virtual
-          </p>
-        </div>
-      </aside>
-
-      <div className="flex flex-1 items-center justify-center px-6 py-12" style={{ background: C.gris100 }}>
-        <div className="w-full max-w-md rounded-xl px-8 py-10 sm:px-12"
-             style={{ background: C.blanco, border: `1px solid ${C.gris200}` }}>
-          {modo === "login" && (
-            <FormLogin entrar={entrar}
-                       irActivar={() => setModo("activar")}
-                       irOlvide={() => setModo("olvide")} />
-          )}
-          {modo === "activar" && (
-            <FormActivar setUsuario={setUsuario} irLogin={() => setModo("login")} />
-          )}
-          {modo === "olvide" && (
-            <FormOlvide setUsuario={setUsuario} irLogin={() => setModo("login")} />
-          )}
-        </div>
-      </div>
-    </div>
+    <MarcoAcceso>
+      {modo === "login" && (
+        <FormLogin entrar={entrar}
+                   irActivar={() => setModo("activar")}
+                   irOlvide={() => setModo("olvide")} />
+      )}
+      {modo === "activar" && <FormActivar irLogin={() => setModo("login")} />}
+      {modo === "olvide" && <FormOlvide irLogin={() => setModo("login")} />}
+    </MarcoAcceso>
   );
 }
 
@@ -93,13 +60,13 @@ function FormLogin({ entrar, irActivar, irOlvide }) {
       <Campo label="Matrícula o usuario">
         <input value={identificador} onChange={(e) => setIdentificador(e.target.value)}
                autoComplete="username" placeholder="S23012345"
-               className="w-full rounded-md px-3.5 py-3 text-sm outline-none" style={estiloInput} />
+               className={claseInput} style={estiloInput} />
       </Campo>
 
       <Campo label="Contraseña">
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
                autoComplete="current-password"
-               className="w-full rounded-md px-3.5 py-3 text-sm outline-none" style={estiloInput} />
+               className={claseInput} style={estiloInput} />
       </Campo>
 
       <MensajeError>{error}</MensajeError>
@@ -128,197 +95,162 @@ function FormLogin({ entrar, irActivar, irOlvide }) {
   );
 }
 
-function FormActivar({ setUsuario, irLogin }) {
-  const [paso, setPaso] = useState(1);
+/* Pedir el token a mano era pedirle a un alumno que distinguiera, dentro de
+   una dirección larga, qué parte era «el código». Ahora esta pantalla termina
+   en «revisa tu correo» y el enlace hace el resto. */
+function FormActivar({ irLogin }) {
   const [matricula, setMatricula] = useState("");
   const [curp, setCurp] = useState("");
-  const [token, setToken] = useState("");
-  const [password, setPassword] = useState("");
-  const [password2, setPassword2] = useState("");
-  const [mensaje, setMensaje] = useState(null);
+  const [enviado, setEnviado] = useState(null);
   const [error, setError] = useState(null);
+  const [enviando, setEnviando] = useState(false);
 
   const verificar = async (e) => {
     e.preventDefault();
     setError(null);
+    setEnviando(true);
     try {
-      const r = await api.verificarPadron(matricula, curp);
-      setMensaje(r.mensaje);
-      // En desarrollo el backend devuelve el token para no depender del correo.
-      if (r.token_desarrollo) setToken(r.token_desarrollo);
-      setPaso(2);
+      setEnviado(await api.verificarPadron(matricula, curp));
     } catch (err) {
       setError(err.message);
+    } finally {
+      setEnviando(false);
     }
   };
 
-  const confirmar = async (e) => {
-    e.preventDefault();
-    setError(null);
-    if (password !== password2) return setError("Las contraseñas no coinciden.");
-    if (password.length < 10) return setError("La contraseña debe tener al menos 10 caracteres.");
-    try {
-      setUsuario(await api.confirmarActivacion(token, password));
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  if (paso === 1)
-    return (
-      <form onSubmit={verificar} className="space-y-5">
-        <div>
-          <h2 className="text-2xl font-semibold" style={{ color: C.azul900 }}>Activar mi cuenta</h2>
-          <p className="mt-1 text-sm" style={{ color: C.gris500 }}>
-            Comprobamos que estés en el padrón de Contaduría Virtual.
-          </p>
-        </div>
-
-        <Campo label="Matrícula">
-          <input value={matricula} onChange={(e) => setMatricula(e.target.value)}
-                 placeholder="S23012345"
-                 className="w-full rounded-md px-3.5 py-3 text-sm outline-none" style={estiloInput} />
-        </Campo>
-
-        <Campo label="Primeros 10 caracteres de tu CURP"
-               ayuda="Cuatro letras y seis dígitos. Ejemplo: RUMA030214">
-          <input value={curp} onChange={(e) => setCurp(e.target.value.toUpperCase())}
-                 maxLength={10}
-                 className="w-full rounded-md px-3.5 py-3 text-sm uppercase outline-none" style={estiloInput} />
-        </Campo>
-
-        <MensajeError>{error}</MensajeError>
-        <Boton type="submit" className="w-full">Continuar</Boton>
-        <Boton type="button" variante="neutro" onClick={irLogin} className="w-full">
-          Volver a iniciar sesión
-        </Boton>
-      </form>
-    );
+  if (enviado)
+    return <RevisaTuCorreo mensaje={enviado.mensaje} token={enviado.token_desarrollo}
+                           ruta="/activar" irLogin={irLogin} />;
 
   return (
-    <form onSubmit={confirmar} className="space-y-5">
+    <form onSubmit={verificar} className="space-y-5">
       <div>
-        <h2 className="text-2xl font-semibold" style={{ color: C.azul900 }}>Define tu contraseña</h2>
-        <p className="mt-1 text-sm" style={{ color: C.gris500 }}>{mensaje}</p>
+        <h2 className="text-2xl font-semibold" style={{ color: C.azul900 }}>Activar mi cuenta</h2>
+        <p className="mt-1 text-sm" style={{ color: C.gris500 }}>
+          Comprobamos que estés en el padrón de Contaduría Virtual.
+        </p>
       </div>
 
-      <Campo label="Enlace de activación"
-             ayuda="Pégalo desde el correo que te enviamos.">
-        <input value={token} onChange={(e) => setToken(e.target.value)}
-               className="w-full rounded-md px-3.5 py-3 text-xs outline-none" style={estiloInput} />
+      <Campo label="Matrícula">
+        <input value={matricula} onChange={(e) => setMatricula(e.target.value)}
+               placeholder="S23012345" autoFocus
+               className={claseInput} style={estiloInput} />
       </Campo>
 
-      <Campo label="Nueva contraseña" ayuda="Mínimo 10 caracteres.">
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-               autoComplete="new-password"
-               className="w-full rounded-md px-3.5 py-3 text-sm outline-none" style={estiloInput} />
-      </Campo>
-
-      <Campo label="Repite la contraseña">
-        <input type="password" value={password2} onChange={(e) => setPassword2(e.target.value)}
-               autoComplete="new-password"
-               className="w-full rounded-md px-3.5 py-3 text-sm outline-none" style={estiloInput} />
+      <Campo label="Primeros 10 caracteres de tu CURP"
+             ayuda="Cuatro letras y seis dígitos. Ejemplo: RUMA030214">
+        <input value={curp} onChange={(e) => setCurp(e.target.value.toUpperCase())}
+               maxLength={10}
+               className={`${claseInput} uppercase`} style={estiloInput} />
       </Campo>
 
       <MensajeError>{error}</MensajeError>
-      <Boton type="submit" className="w-full">Activar y entrar</Boton>
-    </form>
-  );
-}
-
-
-/* El mensaje es idéntico exista o no la cuenta: si cambiara, cualquiera podría
-   averiguar qué matrículas están registradas probando una por una. */
-function FormOlvide({ setUsuario, irLogin }) {
-  const [paso, setPaso] = useState(1);
-  const [identificador, setIdentificador] = useState("");
-  const [token, setToken] = useState("");
-  const [nueva, setNueva] = useState("");
-  const [repetida, setRepetida] = useState("");
-  const [mensaje, setMensaje] = useState(null);
-  const [error, setError] = useState(null);
-
-  const solicitar = async (e) => {
-    e.preventDefault();
-    setError(null);
-    try {
-      const r = await api.olvidePassword(identificador);
-      setMensaje(r.mensaje);
-      if (r.token_desarrollo) setToken(r.token_desarrollo);
-      setPaso(2);
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const restablecer = async (e) => {
-    e.preventDefault();
-    setError(null);
-    if (nueva !== repetida) return setError("Las contraseñas no coinciden.");
-    try {
-      setUsuario(await api.restablecerPassword(token, nueva));
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  if (paso === 1)
-    return (
-      <form onSubmit={solicitar} className="space-y-5">
-        <div>
-          <h2 className="text-2xl font-semibold" style={{ color: C.azul900 }}>
-            Recuperar contraseña
-          </h2>
-          <p className="mt-1 text-sm" style={{ color: C.gris500 }}>
-            Te enviaremos un enlace al correo registrado en tu cuenta.
-          </p>
-        </div>
-
-        <Campo label="Matrícula o usuario">
-          <input value={identificador} onChange={(e) => setIdentificador(e.target.value)}
-                 placeholder="S23012345"
-                 className="w-full rounded-md px-3.5 py-3 text-sm outline-none" style={estiloInput} />
-        </Campo>
-
-        <MensajeError>{error}</MensajeError>
-        <Boton type="submit" className="w-full">Enviar enlace</Boton>
-        <Boton type="button" variante="neutro" onClick={irLogin} className="w-full">
-          Volver a iniciar sesión
-        </Boton>
-      </form>
-    );
-
-  return (
-    <form onSubmit={restablecer} className="space-y-5">
-      <div>
-        <h2 className="text-2xl font-semibold" style={{ color: C.azul900 }}>
-          Nueva contraseña
-        </h2>
-        <p className="mt-1 text-sm" style={{ color: C.gris500 }}>{mensaje}</p>
-      </div>
-
-      <Campo label="Enlace de recuperación" ayuda="Pégalo desde el correo. Vence en 2 horas.">
-        <input value={token} onChange={(e) => setToken(e.target.value)}
-               className="w-full rounded-md px-3.5 py-3 text-xs outline-none" style={estiloInput} />
-      </Campo>
-
-      <Campo label="Nueva contraseña" ayuda="Mínimo 10 caracteres.">
-        <input type="password" value={nueva} onChange={(e) => setNueva(e.target.value)}
-               autoComplete="new-password"
-               className="w-full rounded-md px-3.5 py-3 text-sm outline-none" style={estiloInput} />
-      </Campo>
-
-      <Campo label="Repite la contraseña">
-        <input type="password" value={repetida} onChange={(e) => setRepetida(e.target.value)}
-               autoComplete="new-password"
-               className="w-full rounded-md px-3.5 py-3 text-sm outline-none" style={estiloInput} />
-      </Campo>
-
-      <MensajeError>{error}</MensajeError>
-      <Boton type="submit" className="w-full">Restablecer y entrar</Boton>
+      <Boton type="submit" disabled={enviando} className="w-full">
+        {enviando ? "Comprobando…" : "Enviarme el enlace"}
+      </Boton>
       <Boton type="button" variante="neutro" onClick={irLogin} className="w-full">
         Volver a iniciar sesión
       </Boton>
     </form>
+  );
+}
+
+/* El mensaje es idéntico exista o no la cuenta: si cambiara, cualquiera podría
+   averiguar qué matrículas están registradas probando una por una. */
+function FormOlvide({ irLogin }) {
+  const [identificador, setIdentificador] = useState("");
+  const [enviado, setEnviado] = useState(null);
+  const [error, setError] = useState(null);
+  const [enviando, setEnviando] = useState(false);
+
+  const solicitar = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setEnviando(true);
+    try {
+      setEnviado(await api.olvidePassword(identificador));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  if (enviado)
+    return <RevisaTuCorreo mensaje={enviado.mensaje} token={enviado.token_desarrollo}
+                           ruta="/restablecer" irLogin={irLogin} />;
+
+  return (
+    <form onSubmit={solicitar} className="space-y-5">
+      <div>
+        <h2 className="text-2xl font-semibold" style={{ color: C.azul900 }}>
+          Recuperar contraseña
+        </h2>
+        <p className="mt-1 text-sm" style={{ color: C.gris500 }}>
+          Te enviaremos un enlace al correo registrado en tu cuenta.
+        </p>
+      </div>
+
+      <Campo label="Matrícula o usuario">
+        <input value={identificador} onChange={(e) => setIdentificador(e.target.value)}
+               placeholder="S23012345" autoFocus
+               className={claseInput} style={estiloInput} />
+      </Campo>
+
+      <MensajeError>{error}</MensajeError>
+      <Boton type="submit" disabled={enviando} className="w-full">
+        {enviando ? "Enviando…" : "Enviar enlace"}
+      </Boton>
+      <Boton type="button" variante="neutro" onClick={irLogin} className="w-full">
+        Volver a iniciar sesión
+      </Boton>
+    </form>
+  );
+}
+
+function RevisaTuCorreo({ mensaje, token, ruta, irLogin }) {
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-2xl font-semibold" style={{ color: C.azul900 }}>
+          Revisa tu correo
+        </h2>
+        <p className="mt-1 text-sm leading-relaxed" style={{ color: C.gris500 }}>{mensaje}</p>
+      </div>
+
+      {/* El correo sale de una cuenta de Gmail, no del dominio uv.mx, así que
+          Outlook lo suele mandar a «no deseado». Decirlo aquí ahorra la mayor
+          parte de los «no me llegó nada». */}
+      <Aviso tono="azul" titulo="Si no lo ves en unos minutos">
+        Busca en la carpeta de correo no deseado. Abre el mensaje y haz clic en
+        el enlace: no hace falta copiar ningún código.
+      </Aviso>
+
+      {/* Solo en desarrollo, donde no hay correo configurado y el backend
+          devuelve el token para no bloquear las pruebas. */}
+      {token && (
+        <div className="rounded-lg p-4" style={{ background: C.ambar100 }}>
+          <p className="text-xs font-semibold" style={{ color: C.ambar600 }}>
+            Modo desarrollo
+          </p>
+          <p className="mt-1 text-xs" style={{ color: C.ambar600 }}>
+            No hay correo configurado, así que el enlace aparece aquí.
+          </p>
+          <Link to={`${ruta}?token=${token}`}
+                className="btn mt-3 inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-[13px] font-medium"
+                style={{
+                  "--btn-bg": C.blanco, "--btn-fg": C.ambar600,
+                  "--btn-bd": C.ambar600, "--btn-bg-hover": C.ambar100,
+                  "--btn-bg-active": C.ambar100,
+                }}>
+            Abrir el enlace
+          </Link>
+        </div>
+      )}
+
+      <Boton variante="neutro" onClick={irLogin} className="w-full">
+        Volver a iniciar sesión
+      </Boton>
+    </div>
   );
 }

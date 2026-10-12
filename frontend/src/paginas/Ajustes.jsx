@@ -174,13 +174,13 @@ function Formulario({ inicial, onCancelar, onGuardado }) {
           <Campo label="Nombre del documento">
             <input value={d.nombre} onChange={campo("nombre")}
                    placeholder="Constancia de estudios"
-                   className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput} />
+                   className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput} />
           </Campo>
           <Campo label="Clave"
                  ayuda="Corta y sin espacios: el alumno la teclea en el banco.">
             <input value={d.clave} onChange={(e) => setD({ ...d, clave: e.target.value.toUpperCase() })}
                    maxLength={12} placeholder="CONST"
-                   className="w-full rounded-md px-3 py-2.5 text-[13px] uppercase outline-none"
+                   className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px] uppercase"
                    style={estiloInput} />
           </Campo>
         </div>
@@ -222,7 +222,7 @@ function Formulario({ inicial, onCancelar, onGuardado }) {
           <Campo label="Costo por documento">
             <input type="number" step="0.01" min="0" value={d.costo} onChange={campo("costo")}
                    placeholder="0.00"
-                   className="w-full max-w-[220px] rounded-md px-3 py-2.5 text-[13px] outline-none"
+                   className="campo-texto w-full max-w-[220px] rounded-md px-3 py-2.5 text-[13px]"
                    style={estiloInput} />
           </Campo>
         )}
@@ -230,17 +230,17 @@ function Formulario({ inicial, onCancelar, onGuardado }) {
         <Campo label="Para qué sirve"
                ayuda="Lo lee el alumno antes de decidir. Con pago por adelantado, una descripción clara evita devoluciones.">
           <textarea rows={2} value={d.descripcion ?? ""} onChange={campo("descripcion")}
-                    className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput} />
+                    className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput} />
         </Campo>
 
         <Campo label="Requisitos">
           <textarea rows={2} value={d.requisitos ?? ""} onChange={campo("requisitos")}
-                    className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput} />
+                    className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput} />
         </Campo>
 
         <Campo label="Documento de muestra"
                ayuda="Una imagen o PDF de ejemplo. El alumno lo ve antes de solicitar.">
-          <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-[13px]"
+          <label className="caja-campo flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-[13px]"
                  style={estiloInput}>
             <Upload size={15} color={C.gris400} />
             {ejemplo ? ejemplo.name : d.ejemplo ? `Actual: ${d.ejemplo.nombre}` : "Selecciona un archivo"}
@@ -304,7 +304,7 @@ function CuentaBancaria({ cuenta, onGuardado }) {
               {CAMPOS.map(([k, etiqueta]) => (
                 <Campo key={k} label={etiqueta}>
                   <input value={d[k] ?? ""} onChange={campo(k)}
-                         className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none"
+                         className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]"
                          style={estiloInput} />
                 </Campo>
               ))}
@@ -449,7 +449,7 @@ function Vigencia() {
           <Campo label="Años">
             <input type="number" min="1" max="20" value={editando}
                    onChange={(e) => setEditando(e.target.value)}
-                   className="w-24 rounded-md px-3 py-2.5 text-[13px] outline-none"
+                   className="campo-texto w-24 rounded-md px-3 py-2.5 text-[13px]"
                    style={estiloInput} />
           </Campo>
           <Boton onClick={guardar} disabled={String(anios) === editando}>Guardar</Boton>

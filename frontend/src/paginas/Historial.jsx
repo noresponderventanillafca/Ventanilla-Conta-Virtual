@@ -43,11 +43,11 @@ export default function Historial() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="ml-auto flex items-center gap-2 rounded-md px-3 py-2" style={estiloInput}>
+          <div className="caja-campo ml-auto flex items-center gap-2 rounded-md px-3 py-2" style={estiloInput}>
             <Search size={14} color={C.gris400} />
             <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)}
                    placeholder="Folio, matrícula o nombre"
-                   className="w-56 text-[13px] outline-none" style={{ border: "none" }} />
+                   className="campo-texto w-56 text-[13px]" style={{ border: "none" }} />
           </div>
         </div>
 

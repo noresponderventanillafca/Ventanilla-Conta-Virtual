@@ -212,7 +212,7 @@ function ZonaAccion({ tramite, usuario, onActualizar }) {
         <div className="mt-3 space-y-3">
           <input value={linea} onChange={(e) => setLinea(e.target.value)}
                  placeholder="Referencia de pago"
-                 className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput} />
+                 className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput} />
           <MensajeError>{error}</MensajeError>
           <Boton disabled={ocupado || !linea.trim()}
                  onClick={() => ejecutar(() => api.avanzar(tramite.folio, { linea_captura: linea.trim() }))}>
@@ -235,7 +235,7 @@ function ZonaAccion({ tramite, usuario, onActualizar }) {
             "entregado" sin nada que entregar. */}
         <div className="mt-3 space-y-3">
           {llevaPago && (
-            <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-[13px]"
+            <label className="caja-campo flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-[13px]"
                    style={estiloInput}>
               <Upload size={15} color={C.gris400} />
               {reciboEscaneado ? reciboEscaneado.name : "1 · Recibo escaneado"}
@@ -243,7 +243,7 @@ function ZonaAccion({ tramite, usuario, onActualizar }) {
                      onChange={(e) => setReciboEscaneado(e.target.files?.[0] ?? null)} />
             </label>
           )}
-          <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-[13px]"
+          <label className="caja-campo flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-[13px]"
                  style={estiloInput}>
             <Upload size={15} color={C.gris400} />
             {documento ? documento.name : `${llevaPago ? "2 · " : ""}Documento elaborado`}
@@ -269,11 +269,11 @@ function ZonaAccion({ tramite, usuario, onActualizar }) {
         <div className="mt-3 space-y-2.5">
           <input type="date" value={pago.fecha_deposito}
                  onChange={(e) => setPago({ ...pago, fecha_deposito: e.target.value })}
-                 className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput} />
+                 className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput} />
           <input placeholder="Número de operación completo" value={pago.referencia_operacion}
                  onChange={(e) => setPago({ ...pago, referencia_operacion: e.target.value })}
-                 className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput} />
-          <label className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-[13px]"
+                 className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput} />
+          <label className="caja-campo flex cursor-pointer items-center gap-2 rounded-md px-3 py-2.5 text-[13px]"
                  style={{ ...estiloInput }}>
             <Upload size={15} color={C.gris400} />
             {pago.comprobante ? pago.comprobante.name : "Selecciona tu comprobante"}

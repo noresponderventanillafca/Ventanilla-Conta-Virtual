@@ -73,11 +73,37 @@ export function InfoCard({ icon: Icon, label, value, sub, right }) {
    diminuta. Los enlaces conservan la etiqueta <a> —navegan o descargan— pero
    se ven igual. */
 
+/* Cada variante declara también su color al pasar el puntero y al pulsar.
+   Van como variables CSS porque las pseudo-clases (:hover, :active) no
+   existen en un `style` en línea; estilos.css las consume. */
 const ESTILOS_BOTON = {
-  primario: (d) => ({ background: d ? C.gris200 : C.azul700, color: d ? C.gris400 : C.blanco }),
-  secundario: () => ({ background: C.blanco, color: C.azul700, border: `1px solid ${C.gris200}` }),
-  neutro: () => ({ background: C.blanco, color: C.gris700, border: `1px solid ${C.gris200}` }),
-  peligro: () => ({ background: C.blanco, color: C.rojo600, border: `1px solid ${C.gris200}` }),
+  primario: {
+    "--btn-bg": C.azul700, "--btn-fg": C.blanco,
+    "--btn-bg-hover": C.azul900, "--btn-bg-active": C.azul950,
+  },
+  secundario: {
+    "--btn-bg": C.blanco, "--btn-fg": C.azul700, "--btn-bd": C.gris200,
+    "--btn-bg-hover": C.azul100, "--btn-bd-hover": C.azul500,
+    "--btn-bg-active": C.azul200,
+  },
+  neutro: {
+    "--btn-bg": C.blanco, "--btn-fg": C.gris700, "--btn-bd": C.gris200,
+    "--btn-bg-hover": C.gris100, "--btn-bd-hover": C.gris400,
+    "--btn-bg-active": C.gris200,
+  },
+  peligro: {
+    "--btn-bg": C.blanco, "--btn-fg": C.rojo600, "--btn-bd": C.gris200,
+    "--btn-bg-hover": C.rojo100, "--btn-bd-hover": C.rojo600,
+    "--btn-bg-active": C.rojo200,
+  },
+};
+
+/* Un botón deshabilitado no debe reaccionar: si cambiara al pasar el puntero
+   prometería algo que no va a pasar. */
+const DESHABILITADO = {
+  "--btn-bg": C.gris100, "--btn-fg": C.gris400, "--btn-bd": C.gris200,
+  "--btn-bg-hover": C.gris100, "--btn-bd-hover": C.gris200,
+  "--btn-bg-active": C.gris100,
 };
 
 const TAMANOS = {
@@ -92,8 +118,8 @@ export function Boton({
 }) {
   return (
     <button type={type} onClick={onClick} disabled={disabled}
-            className={`inline-flex items-center justify-center gap-2 ${TAMANOS[tamano]} ${className}`}
-            style={{ ...ESTILOS_BOTON[variante](disabled), cursor: disabled ? "not-allowed" : "pointer" }}>
+            className={`btn inline-flex items-center justify-center gap-2 ${TAMANOS[tamano]} ${className}`}
+            style={disabled ? DESHABILITADO : ESTILOS_BOTON[variante]}>
       {children}
     </button>
   );
@@ -108,18 +134,26 @@ export function BotonEnlace({
   return (
     <a href={href} target={target} rel={target === "_blank" ? "noreferrer" : undefined}
        download={download}
-       className={`inline-flex items-center justify-center gap-2 ${TAMANOS[tamano]} ${className}`}
-       style={ESTILOS_BOTON[variante]()} {...resto}>
+       className={`btn inline-flex items-center justify-center gap-2 ${TAMANOS[tamano]} ${className}`}
+       style={ESTILOS_BOTON[variante]} {...resto}>
       {children}
     </a>
   );
 }
 
-export const estiloInput = {
-  border: `1px solid ${C.gris200}`,
-  color: C.gris700,
-  background: C.blanco,
-};
+/* Vacío a propósito. El borde, el fondo y el color del texto se mudaron a la
+   clase .campo-texto de estilos.css: mientras estuvieron aquí, como estilo en
+   línea, ganaban a cualquier regla de :focus y el campo activo no se
+   distinguía. Se conserva el nombre para no tocar las veinte pantallas que lo
+   pasan en `style`, y para que siga habiendo un sitio donde añadir un ajuste
+   puntual si hiciera falta. */
+export const estiloInput = {};
+
+/* Las clases que todo campo de texto debe llevar. Se exporta como constante
+   para no repetir la lista en cada pantalla y que el foco se vea igual en
+   todas. */
+export const claseInput =
+  "campo-texto w-full rounded-md px-3.5 py-3 text-sm outline-none";
 
 export function Campo({ label, children, ayuda }) {
   return (

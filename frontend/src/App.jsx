@@ -1,7 +1,10 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import { useSesion } from "./sesion";
+import PantallaCarga from "./componentes/PantallaCarga";
 import Acceso from "./paginas/Acceso";
+import Activar from "./paginas/Activar";
+import Restablecer from "./paginas/Restablecer";
 import MisTramites from "./paginas/MisTramites";
 import NuevaSolicitud from "./paginas/NuevaSolicitud";
 import DetalleTramite from "./paginas/DetalleTramite";
@@ -35,15 +38,32 @@ function SoloRol({ roles, children }) {
 }
 
 
+/* Rutas a las que se llega desde un correo, siempre sin sesión iniciada.
+   Tienen que resolverse ANTES de mirar la sesión: mientras se comprobaban
+   después, el enlace de activación caía en el comodín de abajo y terminaba
+   en la pantalla de acceso, tirando el token que venía en la dirección. */
+const PUBLICAS = {
+  "/activar": <Activar />,
+  "/restablecer": <Restablecer />,
+};
+
 export default function App() {
   const { usuario, cargando } = useSesion();
+  const { pathname, search } = useLocation();
 
-  if (cargando)
-    return (
-      <p style={{ padding: 40, fontFamily: "system-ui, sans-serif", color: "#5F6B76" }}>
-        Cargando…
-      </p>
-    );
+  // Además de arreglar el enlace, esto hace que estas dos pantallas aparezcan
+  // de inmediato, sin esperar a que el servidor despierte: lo que necesitan
+  // del backend es el envío del formulario, no el dibujo de la página.
+  //
+  // Con un token en la dirección la ruta pública gana aunque haya sesión
+  // abierta. En una computadora compartida —una sala de cómputo, la casa—
+  // quien hace clic en el enlace de su propio correo vería, si no, el
+  // escritorio de la última persona que entró.
+  if (PUBLICAS[pathname] &&
+      (!usuario || new URLSearchParams(search).has("token")))
+    return PUBLICAS[pathname];
+
+  if (cargando) return <PantallaCarga />;
   if (!usuario) return <Acceso />;
 
   // El servidor bloquea el resto de la API mientras la contraseña sea

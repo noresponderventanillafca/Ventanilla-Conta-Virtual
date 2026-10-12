@@ -193,21 +193,21 @@ function Formulario({ inicial, onCancelar, onGuardado }) {
           <Campo label="Nombre completo">
             <input value={d.nombre} onChange={campo("nombre")}
                    placeholder="Ana Paula Mendoza"
-                   className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput} />
+                   className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput} />
           </Campo>
           <Campo label="Usuario"
                  ayuda="Solo letras, sin números ni espacios. Es con lo que inicia sesión.">
             <input value={d.identificador} maxLength={20}
                    onChange={(e) => setD({ ...d, identificador: e.target.value.toUpperCase() })}
                    placeholder="MENDOZAAP"
-                   className="w-full rounded-md px-3 py-2.5 text-[13px] uppercase outline-none"
+                   className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px] uppercase"
                    style={estiloInput} />
           </Campo>
         </div>
 
         <Campo label="Correo institucional" ayuda="Ahí llegan las notificaciones del sistema.">
           <input type="email" value={d.correo} onChange={campo("correo")}
-                 className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput} />
+                 className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput} />
         </Campo>
 
         <Campo label="Rol">

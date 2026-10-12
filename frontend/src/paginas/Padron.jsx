@@ -140,30 +140,30 @@ function AltaIndividual({ onCancelar, onGuardado }) {
           <Campo label="Matrícula">
             <input value={d.matricula} placeholder="S26001234"
                    onChange={(e) => setD({ ...d, matricula: e.target.value.toUpperCase() })}
-                   className="w-full rounded-md px-3 py-2.5 text-[13px] uppercase outline-none"
+                   className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px] uppercase"
                    style={estiloInput} />
           </Campo>
           <Campo label="Primeros 10 caracteres de la CURP"
                  ayuda="Con esto el alumno comprueba que está en el padrón al activar su cuenta.">
             <input value={d.curp_prefijo} maxLength={10} placeholder="RUMA030214"
                    onChange={(e) => setD({ ...d, curp_prefijo: e.target.value.toUpperCase() })}
-                   className="w-full rounded-md px-3 py-2.5 text-[13px] uppercase outline-none"
+                   className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px] uppercase"
                    style={estiloInput} />
           </Campo>
         </div>
         <Campo label="Nombre completo">
           <input value={d.nombre} onChange={campo("nombre")}
-                 className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput} />
+                 className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput} />
         </Campo>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Campo label="Correo institucional">
             <input type="email" value={d.correo_institucional} onChange={campo("correo_institucional")}
-                   className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput} />
+                   className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput} />
           </Campo>
           <Campo label="Año de ingreso"
                  ayuda="Sirve para calcular su vigencia. Si lo dejas vacío, cuenta desde hoy.">
             <input value={d.fecha_ingreso} onChange={campo("fecha_ingreso")} placeholder="2026"
-                   className="w-full rounded-md px-3 py-2.5 text-[13px] outline-none" style={estiloInput} />
+                   className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput} />
           </Campo>
         </div>
         <MensajeError>{error}</MensajeError>

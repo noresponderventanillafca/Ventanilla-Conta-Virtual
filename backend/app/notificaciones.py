@@ -190,10 +190,24 @@ def _enviar_por_api(cfg, destinatarios, asunto, cuerpo):
         # El error puede venir en «error» o, si el script es otra versión, como
         # {"status":"error","message":...}. Hay que mirar las dos formas.
         if datos.get("error") or str(datos.get("status", "")).lower() == "error":
-            detalle = datos.get("error") or datos.get("message") or "sin detalle"
+            detalle = str(datos.get("error") or datos.get("message") or "sin detalle")
             codigo = datos.get("codigo")
+            aviso = ""
+            # «no recipient» y la ausencia de «codigo» son la firma de un script
+            # que lee data.to / data.subject / data.body: recibe los campos
+            # vacíos. Vale la pena decirlo en lugar de dejar el mensaje de
+            # Google a secas, porque la causa no se adivina leyéndolo.
+            if "no recipient" in detalle.lower() or "codigo" not in datos:
+                aviso = (" — El script no está leyendo los campos que se le "
+                         "envían («para», «asunto», «cuerpo»), así que le llegan "
+                         "vacíos. Es el script anterior: pega "
+                         "apps-script/Codigo.gs y crea una IMPLEMENTACIÓN NUEVA, "
+                         "porque guardar el código no cambia lo que sirve la URL "
+                         "/exec. Para saber cuál está publicado, abre esa URL en "
+                         "el navegador: el script correcto responde "
+                         "{\"estado\":\"activo\"}.")
             raise RuntimeError(
-                f"{detalle} (código {codigo})" if codigo else str(detalle)
+                (f"{detalle} (código {codigo})" if codigo else detalle) + aviso
             )
 
         # Y exigir una confirmación explícita, no conformarse con que no diga
@@ -459,9 +473,13 @@ def enlace_de_activacion(correo, token):
     _en_segundo_plano(
         [correo],
         "Activa tu cuenta de la Ventanilla Virtual",
-        "Para activar tu cuenta y definir tu contraseña, abre este enlace:\n\n"
+        "Haz clic en este enlace para definir tu contraseña y entrar:\n\n"
         f"{base}/activar?token={token}\n\n"
-        "El enlace vence en 48 horas. Si no solicitaste esto, ignora el mensaje.\n",
+        "No tienes que copiar ningún código: el enlace lo lleva dentro. Si tu\n"
+        "correo lo parte en dos renglones, pega las dos partes juntas en la\n"
+        "barra de direcciones, sin espacios.\n\n"
+        "El enlace vence en 48 horas y solo sirve una vez. Si no solicitaste\n"
+        "esto, ignora el mensaje.\n",
     )
 
 
@@ -471,7 +489,9 @@ def enlace_de_restablecimiento(correo, token):
         [correo],
         "Restablece tu contraseña de la Ventanilla Virtual",
         "Recibimos una solicitud para restablecer tu contraseña.\n\n"
+        "Haz clic en este enlace para elegir una nueva:\n\n"
         f"{base}/restablecer?token={token}\n\n"
+        "No tienes que copiar ningún código: el enlace lo lleva dentro.\n\n"
         "El enlace vence en 2 horas y solo se puede usar una vez.\n"
         "Si no lo solicitaste, ignora este mensaje: tu contraseña no cambió.\n",
     )
