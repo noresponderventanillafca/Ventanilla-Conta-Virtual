@@ -1,4 +1,6 @@
 import os
+from datetime import timedelta
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -43,6 +45,29 @@ class Config:
     # y la respuesta no es poner "None": es volver a poner un proxy delante.
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_SECURE = os.getenv("FLASK_ENV") == "production"
+
+    # Caducidad de la sesión. Antes no había ninguna: la cookie solo moría al
+    # cerrar el navegador, así que una pestaña olvidada en una laptop seguía
+    # siendo una sesión válida al día siguiente, y cualquiera que llegara a esa
+    # computadora entraba sin contraseña.
+    #
+    # Dos límites, porque protegen de cosas distintas:
+    #
+    #   INACTIVIDAD — ventana rodante, se renueva con cada petición. Cubre la
+    #   computadora que alguien deja abierta y se va.
+    #
+    #   TOPE ABSOLUTO — desde el momento de entrar, pase lo que pase. Cubre la
+    #   sesión que se mantiene viva sola y obliga a volver a escribir la
+    #   contraseña al menos una vez al día.
+    #
+    # La ventana del servidor es más holgada que la del navegador a propósito:
+    # así quien cierra sesión es la interfaz, con un aviso y la oportunidad de
+    # seguir, en vez de un 401 seco a media captura.
+    PERMANENT_SESSION_LIFETIME = timedelta(
+        minutes=int(os.getenv("SESION_INACTIVIDAD_MINUTOS", 30))
+    )
+    SESSION_REFRESH_EACH_REQUEST = True
+    SESION_MAXIMA_HORAS = int(os.getenv("SESION_MAXIMA_HORAS", 12))
 
     # Render y otros proxys terminan el TLS antes de la aplicación. Sin esto,
     # Flask cree que la conexión es HTTP y no manda la cookie marcada Secure.

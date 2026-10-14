@@ -23,7 +23,7 @@ export default function Historial() {
     api.historial().then(setTramites).catch((e) => setError(e.message));
   }, []);
 
-  if (error) return <Marco><MensajeError>{error}</MensajeError></Marco>;
+  if (error) return <Marco><MensajeError onReintentar={() => window.location.reload()}>{error}</MensajeError></Marco>;
 
   const q = busqueda.trim().toLowerCase();
   const filtrados = !tramites ? [] : (!q ? tramites : tramites.filter((t) =>

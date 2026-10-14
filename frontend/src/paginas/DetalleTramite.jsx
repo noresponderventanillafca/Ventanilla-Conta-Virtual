@@ -40,7 +40,7 @@ export default function DetalleTramite() {
     api.detalle(folio).then(setTramite).catch((e) => setError(e.message));
   }, [folio]);
 
-  if (error) return <Marco><MensajeError>{error}</MensajeError></Marco>;
+  if (error) return <Marco><MensajeError onReintentar={() => window.location.reload()}>{error}</MensajeError></Marco>;
   if (!tramite) return <Marco><Cargando /></Marco>;
 
   const archivos = tramite.archivos ?? [];

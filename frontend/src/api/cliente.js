@@ -7,15 +7,29 @@ async function peticion(ruta, opciones = {}) {
   try {
     respuesta = await fetch(`/api${ruta}`, { credentials: "include", ...opciones });
   } catch {
-    throw new Error("No se pudo conectar con el servidor. ¿Está corriendo el backend?");
-  }
-
-  if (respuesta.status === 401) {
-    window.dispatchEvent(new CustomEvent("sesion-expirada"));
-    throw new Error("No has iniciado sesión");
+    // Marcado como fallo de red para distinguirlo de un rechazo del servidor.
+    // No es lo mismo «no hay internet» —o el servidor gratuito despertando—
+    // que «tu sesión ya no vale»: lo primero se reintenta, lo segundo manda al
+    // inicio de sesión. Sin esta distinción, perder el wifi un momento sacaba
+    // a la persona del sistema.
+    const error = new Error(
+      navigator.onLine
+        ? "El servidor no responde. Puede estar despertando: vuelve a intentarlo en unos segundos."
+        : "Parece que no hay conexión a internet. Revísala y vuelve a intentarlo."
+    );
+    error.deRed = true;
+    throw error;
   }
 
   const datos = await respuesta.json().catch(() => ({}));
+
+  if (respuesta.status === 401) {
+    window.dispatchEvent(new CustomEvent("sesion-expirada", {
+      detail: { codigo: datos.codigo },
+    }));
+    throw new Error(datos.error || "No has iniciado sesión");
+  }
+
   if (!respuesta.ok) throw new Error(datos.error || "Ocurrió un error");
   return datos;
 }

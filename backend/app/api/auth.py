@@ -1,7 +1,7 @@
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, session
 from flask_login import login_user, logout_user, login_required, current_user
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
@@ -18,6 +18,22 @@ BLOQUEO_MINUTOS = 15
 
 def _serializador(salt="activacion"):
     return URLSafeTimedSerializer(current_app.config["SECRET_KEY"], salt=salt)
+
+
+def _iniciar_sesion(usuario):
+    """Único lugar donde se abre una sesión.
+
+    Hay tres puertas de entrada —acceso normal, activación de cuenta y
+    restablecimiento de contraseña— y las tres tienen que dejar la sesión con
+    la misma caducidad. Cuando cada una llamaba a login_user por su cuenta, dos
+    de ellas se quedaban sin límite de tiempo.
+    """
+    login_user(usuario, remember=False)
+    # permanent no significa «para siempre»: es lo que activa
+    # PERMANENT_SESSION_LIFETIME. Sin esto la cookie es de navegador y sobrevive
+    # mientras la ventana siga abierta, que fue justo el problema.
+    session.permanent = True
+    session["inicio"] = datetime.now(timezone.utc).timestamp()
 
 
 @bp.post("/activar/verificar")
@@ -92,7 +108,7 @@ def confirmar_activacion():
     db.session.add(usuario)
     db.session.commit()
 
-    login_user(usuario)
+    _iniciar_sesion(usuario)
     return jsonify(usuario.a_dict())
 
 
@@ -120,7 +136,8 @@ def login():
     usuario.intentos_fallidos = 0
     usuario.bloqueado_hasta = None
     db.session.commit()
-    login_user(usuario, remember=False)
+
+    _iniciar_sesion(usuario)
     return jsonify(usuario.a_dict())
 
 
@@ -210,5 +227,5 @@ def restablecer_password():
 
     usuario.definir_password(nueva)
     db.session.commit()
-    login_user(usuario)
+    _iniciar_sesion(usuario)
     return jsonify(usuario.a_dict())

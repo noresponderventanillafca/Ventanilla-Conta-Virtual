@@ -32,7 +32,11 @@ export default function MisTramites() {
 
         <Card title="Mis trámites"
               right={<Boton onClick={() => navegar("/documentos")}>Nueva solicitud</Boton>}>
-          {error && <div className="px-5 pt-4"><MensajeError>{error}</MensajeError></div>}
+          {error && (
+            <div className="px-5 pt-4">
+              <MensajeError onReintentar={() => window.location.reload()}>{error}</MensajeError>
+            </div>
+          )}
           {tramites === null ? <Cargando /> : (
             <>
               <div className="flex flex-wrap gap-2 px-5 pt-4">

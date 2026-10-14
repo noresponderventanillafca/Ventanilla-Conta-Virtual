@@ -102,7 +102,9 @@ def _validar(matricula, curp, nombre, correo):
 
 
 @bp.post("")
-@rol_requerido(Rol.SECRETARIA)
+# Coordinación también da de alta: en la práctica registra alumnos igual que
+# Secretaría, y mandarla a pedirlo era un rodeo sin motivo.
+@rol_requerido(Rol.SECRETARIA, Rol.COORDINADORA)
 def agregar():
     """Alta de uno en uno: no siempre hay un archivo, y para un alumno que
     llega tarde o al que se le corrigió la matrícula, preparar una hoja de
@@ -168,7 +170,7 @@ def _filas_excel(contenido):
 
 
 @bp.post("/cargar")
-@rol_requerido(Rol.SECRETARIA)
+@rol_requerido(Rol.SECRETARIA, Rol.COORDINADORA)
 def cargar():
     """Acepta CSV y Excel con: matricula, curp_prefijo, nombre,
     correo_institucional, y opcionalmente fecha_ingreso.

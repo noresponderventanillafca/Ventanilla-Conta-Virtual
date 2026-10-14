@@ -72,6 +72,46 @@ body {
 }
 .campo-texto:disabled { background: var(--gris100); color: var(--gris400); }
 
+/* ---------------------------------------------------------------------
+   Barra superior
+
+   Va aparte de .btn porque vive sobre el azul institucional: ahí un hover
+   que aclara el fondo se lee, y uno que lo oscurece desaparece.
+   --------------------------------------------------------------------- */
+.barra-enlace {
+  color: var(--gris200);
+  text-decoration: none;
+  transition: background-color 120ms ease, color 120ms ease,
+              border-color 120ms ease, transform 60ms ease;
+}
+.barra-enlace:hover { background: var(--azul700); color: var(--blanco); }
+.barra-enlace:active { transform: translateY(1px); }
+
+/* La pestaña en la que ya estás no debe reaccionar como si llevara a otro
+   lado: se queda fija y marcada. */
+.barra-enlace[aria-current="page"] { background: var(--azul700); color: var(--blanco); }
+.barra-enlace[aria-current="page"]:active { transform: none; }
+
+.barra-accion {
+  color: var(--gris200);
+  border: 1px solid var(--azul500);
+  background: transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 120ms ease, color 120ms ease,
+              border-color 120ms ease, transform 60ms ease;
+}
+.barra-accion:hover {
+  background: var(--azul700);
+  border-color: var(--cian);
+  color: var(--blanco);
+}
+.barra-accion:active { transform: translateY(1px); background: var(--azul950); }
+
+@media (prefers-reduced-motion: reduce) {
+  .barra-enlace:active, .barra-accion:active { transform: none; }
+}
+
 /* Caja con aspecto de campo que no es un campo: el recuadro de subir archivo
    y los buscadores que llevan una lupa al lado del input. */
 .caja-campo {

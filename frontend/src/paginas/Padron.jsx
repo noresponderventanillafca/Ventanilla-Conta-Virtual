@@ -25,7 +25,9 @@ export default function Padron() {
   if (error && !datos) return <Marco><MensajeError>{error}</MensajeError></Marco>;
   if (datos === null) return <Marco><Cargando /></Marco>;
 
-  const esSecretaria = usuario.rol === "secretaria";
+  // Secretaría y Coordinación registran alumnos por igual. La depuración, en
+  // cambio, sigue siendo solo de Coordinación: borra cuentas y archivos.
+  const puedeRegistrar = ["secretaria", "coordinadora"].includes(usuario.rol);
 
   return (
     <Marco>
@@ -42,7 +44,7 @@ export default function Padron() {
 
         <MensajeError>{error}</MensajeError>
 
-        {esSecretaria && (
+        {puedeRegistrar && (
           <>
             {vista === "alta"
               ? <AltaIndividual onCancelar={() => setVista(null)}

@@ -84,6 +84,9 @@ S3_REGION=auto
 URL_PUBLICA=https://tu-sitio.netlify.app
 FRONTEND_ORIGIN=https://tu-sitio.netlify.app
 
+SESION_INACTIVIDAD_MINUTOS=30    (opcional)
+SESION_MAXIMA_HORAS=12           (opcional)
+
 SMTP_HOST=smtp.gmail.com
 SMTP_PUERTO=587
 SMTP_USUARIO=
@@ -93,6 +96,14 @@ CORREO_REMITENTE=
 
 `URL_PUBLICA` es la del **frontend**, no la del backend: es la que va en los
 enlaces de los correos. Si la pones mal, todos salen con enlaces rotos.
+
+Las dos de sesión tienen valores por omisión razonables y casi nunca hay que
+tocarlas. `SESION_INACTIVIDAD_MINUTOS` es la ventana del **servidor**, que se
+renueva con cada petición; la pantalla cierra antes, a los 10 minutos, con un
+aviso de un minuto. Déjala más holgada que la del navegador: así quien cierra
+sesión es la interfaz, avisando, y no un error a media captura.
+`SESION_MAXIMA_HORAS` es el tope desde que se entró, pase lo que pase, y es lo
+que obliga a escribir la contraseña al menos una vez al día.
 
 Fija `PYTHON_VERSION`: si lo dejas al criterio de Render, elegirá la versión más
 nueva que exista ese día —hoy 3.14— y algunas bibliotecas todavía no tienen

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import { useSesion } from "./sesion";
 import PantallaCarga from "./componentes/PantallaCarga";
+import AvisoInactividad from "./componentes/AvisoInactividad";
 import Acceso from "./paginas/Acceso";
 import Activar from "./paginas/Activar";
 import Restablecer from "./paginas/Restablecer";
@@ -68,9 +69,12 @@ export default function App() {
 
   // El servidor bloquea el resto de la API mientras la contraseña sea
   // temporal; la interfaz lo refleja en vez de mostrar errores 403 sueltos.
-  if (usuario.debe_cambiar_password) return <CambiarPassword forzado />;
+  if (usuario.debe_cambiar_password)
+    return <><AvisoInactividad /><CambiarPassword forzado /></>;
 
   return (
+    <>
+    <AvisoInactividad />
     <Routes>
       <Route path="/" element={<Navigate to={INICIO[usuario.rol]} replace />} />
       <Route path="/tramites" element={
@@ -99,5 +103,6 @@ export default function App() {
       <Route path="/password" element={<CambiarPassword />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }

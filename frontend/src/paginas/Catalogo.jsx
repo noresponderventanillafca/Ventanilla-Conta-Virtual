@@ -26,7 +26,7 @@ export default function Catalogo() {
       .catch((e) => setError(e.message));
   }, []);
 
-  if (error) return <Marco><MensajeError>{error}</MensajeError></Marco>;
+  if (error) return <Marco><MensajeError onReintentar={() => window.location.reload()}>{error}</MensajeError></Marco>;
   if (documentos === null) return <Marco><Cargando /></Marco>;
 
   // Busca también en la descripción: el alumno rara vez conoce el nombre

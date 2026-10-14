@@ -12,12 +12,38 @@ import { Boton, Campo, MensajeError, Aviso, estiloInput, claseInput } from "../c
    fecha de nacimiento, así que un compañero de grupo podría calcularlos.
    El enlace al correo institucional es lo que prueba que es el titular. */
 
+/* Volver al inicio de sesión sin explicación se lee como un fallo. Decir por
+   qué pasó evita el «se descompuso» y, sobre todo, evita que alguien vuelva a
+   escribir todo creyendo que lo perdió por un error del sistema. */
+const MOTIVOS = {
+  inactividad: {
+    titulo: "Cerramos tu sesión por inactividad",
+    texto: "Pasaron 10 minutos sin actividad. Es una medida de seguridad: "
+         + "estas pantallas muestran datos personales de los alumnos.",
+  },
+  caducada: {
+    titulo: "Tu sesión caducó",
+    texto: "Por seguridad, hay que volver a entrar al menos una vez al día.",
+  },
+  expirada: {
+    titulo: "Tu sesión ya no estaba activa",
+    texto: "Suele pasar cuando la pestaña queda abierta mucho tiempo. "
+         + "Vuelve a entrar y continúa donde ibas.",
+  },
+};
+
 export default function Acceso() {
-  const { entrar } = useSesion();
+  const { entrar, motivo } = useSesion();
   const [modo, setModo] = useState("login");
+  const aviso = MOTIVOS[motivo];
 
   return (
     <MarcoAcceso>
+      {aviso && modo === "login" && (
+        <div className="mb-5">
+          <Aviso tono="ambar" titulo={aviso.titulo}>{aviso.texto}</Aviso>
+        </div>
+      )}
       {modo === "login" && (
         <FormLogin entrar={entrar}
                    irActivar={() => setModo("activar")}

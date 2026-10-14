@@ -1,3 +1,5 @@
+import { forwardRef } from "react";
+
 import { C } from "../tokens";
 
 /* Tonos con significado, nunca decorativos:
@@ -112,18 +114,21 @@ const TAMANOS = {
   md: "rounded-md px-4 py-2.5 text-[13px] font-medium",
 };
 
-export function Boton({
+/* forwardRef porque en React 18 un `ref` pasado a un componente de función se
+   descarta sin avisar. Hace falta para poder enfocar un botón desde fuera,
+   como el del aviso de inactividad. */
+export const Boton = forwardRef(function Boton({
   children, onClick, variante = "primario", tamano = "md",
-  disabled, type = "button", className = "",
-}) {
+  disabled, type = "button", className = "", ...resto
+}, ref) {
   return (
-    <button type={type} onClick={onClick} disabled={disabled}
+    <button ref={ref} type={type} onClick={onClick} disabled={disabled}
             className={`btn inline-flex items-center justify-center gap-2 ${TAMANOS[tamano]} ${className}`}
-            style={disabled ? DESHABILITADO : ESTILOS_BOTON[variante]}>
+            style={disabled ? DESHABILITADO : ESTILOS_BOTON[variante]} {...resto}>
       {children}
     </button>
   );
-}
+});
 
 /** Enlace con apariencia de botón: sigue siendo <a> para que navegue,
  *  abra en otra pestaña o descargue como el usuario espera. */
@@ -184,13 +189,22 @@ export function Vacio({ children }) {
 }
 
 /* Los errores explican qué pasó y cómo arreglarlo. No piden disculpas
-   ni son vagos sobre la causa. */
-export function MensajeError({ children }) {
+   ni son vagos sobre la causa.
+
+   Con onReintentar añaden además una salida. Un error de conexión a secas deja
+   la pantalla muerta: la única opción visible es recargar a mano, y mucha
+   gente no se le ocurre o cree que perdió el acceso. */
+export function MensajeError({ children, onReintentar }) {
   if (!children) return null;
   return (
     <div className="rounded-lg px-4 py-3 text-[13px]"
          style={{ background: C.rojo100, color: C.rojo600 }}>
-      {children}
+      <div>{children}</div>
+      {onReintentar && (
+        <Boton variante="neutro" tamano="sm" className="mt-3" onClick={onReintentar}>
+          Reintentar
+        </Boton>
+      )}
     </div>
   );
 }

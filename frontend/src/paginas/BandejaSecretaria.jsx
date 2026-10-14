@@ -17,7 +17,7 @@ export default function BandejaSecretaria() {
     api.bandeja().then(setBandeja).catch((e) => setError(e.message));
   }, []);
 
-  if (error) return <Marco><MensajeError>{error}</MensajeError></Marco>;
+  if (error) return <Marco><MensajeError onReintentar={() => window.location.reload()}>{error}</MensajeError></Marco>;
   if (bandeja === null) return <Marco><Cargando /></Marco>;
 
   return (

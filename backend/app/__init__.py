@@ -1,6 +1,7 @@
 import os
+from datetime import datetime, timezone
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, session
 
 from .config import Config, CLAVE_DE_DESARROLLO
 from .extensions import db, migrate, login_manager, cors
@@ -79,6 +80,38 @@ def crear_app(config=Config):
     app.register_blueprint(bp_padron, url_prefix="/api/padron")
     app.register_blueprint(bp_ajustes, url_prefix="/api/ajustes")
     app.register_blueprint(bp_usuarios, url_prefix="/api/usuarios")
+
+    @app.before_request
+    def caducar_sesiones_largas():
+        """Tope absoluto de sesión, contado desde que se entró.
+
+        PERMANENT_SESSION_LIFETIME solo mide inactividad y se renueva con cada
+        petición, así que una pestaña que consulte algo de vez en cuando podría
+        vivir indefinidamente. Esto obliga a volver a escribir la contraseña al
+        menos una vez al día, haya o no actividad.
+        """
+        from flask_login import current_user, logout_user
+
+        if not request.path.startswith("/api/") or not current_user.is_authenticated:
+            return None
+
+        inicio = session.get("inicio")
+        if inicio is None:
+            # Sesión abierta antes de que existiera este control. Se le pone
+            # fecha ahora en lugar de cerrarla: nadie pierde lo que esté
+            # haciendo por desplegar una versión nueva.
+            session["inicio"] = datetime.now(timezone.utc).timestamp()
+            return None
+
+        horas = (datetime.now(timezone.utc).timestamp() - inicio) / 3600
+        if horas >= app.config["SESION_MAXIMA_HORAS"]:
+            logout_user()
+            session.clear()
+            return jsonify({
+                "error": "Tu sesión caducó por seguridad. Vuelve a entrar.",
+                "codigo": "sesion_caducada",
+            }), 401
+        return None
 
     # Con contraseña temporal, el servidor bloquea todo salvo cambiarla.
     # Dejarlo solo en la interfaz no serviría: la API es accesible directamente.

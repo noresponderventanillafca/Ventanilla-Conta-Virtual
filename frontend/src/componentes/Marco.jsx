@@ -28,14 +28,15 @@ export default function Marco({ children }) {
             Ventanilla Virtual
           </span>
 
+          {/* El estado activo va en aria-current y no en un `style`: así lo
+              anuncian los lectores de pantalla y, de paso, el CSS puede
+              distinguirlo sin que un estilo en línea tape el :hover. Ese era
+              el motivo de que la barra entera pareciera muerta al puntero. */}
           <nav className="flex flex-wrap gap-1">
             {enlaces.map(([ruta, texto]) => (
               <Link key={ruta} to={ruta}
-                    className="rounded-md px-3 py-2 text-[13px]"
-                    style={{
-                      background: pathname.startsWith(ruta) ? C.azul700 : "transparent",
-                      color: pathname.startsWith(ruta) ? C.blanco : C.gris200,
-                    }}>
+                    aria-current={pathname.startsWith(ruta) ? "page" : undefined}
+                    className="barra-enlace rounded-md px-3 py-2 text-[13px]">
                 {texto}
               </Link>
             ))}
@@ -46,13 +47,11 @@ export default function Marco({ children }) {
               {usuario.nombre}{usuario.rol === "alumno" ? ` · ${usuario.identificador}` : ""}
             </span>
             <Link to="/password"
-                  className="flex items-center gap-1.5 rounded-md px-3 py-2 text-[13px]"
-                  style={{ color: C.gris200, border: `1px solid ${C.azul500}` }}>
+                  className="barra-accion flex items-center gap-1.5 rounded-md px-3 py-2 text-[13px]">
               <KeyRound size={15} /> Contraseña
             </Link>
             <button onClick={salir}
-                    className="flex items-center gap-1.5 rounded-md px-3 py-2 text-[13px]"
-                    style={{ color: C.gris200, border: `1px solid ${C.azul500}` }}>
+                    className="barra-accion flex items-center gap-1.5 rounded-md px-3 py-2 text-[13px]">
               <LogOut size={15} /> Salir
             </button>
           </div>

@@ -19,7 +19,7 @@ export default function TableroCoordinacion() {
     api.listar().then(setTramites).catch((e) => setError(e.message));
   }, []);
 
-  if (error) return <Marco><MensajeError>{error}</MensajeError></Marco>;
+  if (error) return <Marco><MensajeError onReintentar={() => window.location.reload()}>{error}</MensajeError></Marco>;
   if (tramites === null) return <Marco><Cargando /></Marco>;
 
   const activos = tramites.filter((t) => !t.concluido);
