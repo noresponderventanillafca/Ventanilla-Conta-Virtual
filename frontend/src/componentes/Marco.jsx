@@ -63,6 +63,13 @@ export default function Marco({ children }) {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-7 sm:px-8">{children}</main>
+
+      <footer className="mx-auto max-w-6xl px-4 pb-8 sm:px-8">
+        <Link to="/privacidad" className="text-[12px] underline-offset-2 hover:underline"
+              style={{ color: C.gris400 }}>
+          Aviso de privacidad
+        </Link>
+      </footer>
     </div>
   );
 }

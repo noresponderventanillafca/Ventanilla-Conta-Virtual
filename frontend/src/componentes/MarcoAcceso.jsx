@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 import { C } from "../tokens";
 import Escudo from "./Escudo";
 import { FlechasGrandes } from "./Chevrones";
@@ -31,6 +33,10 @@ export default function MarcoAcceso({ children }) {
           <p className="text-[13px]" style={{ color: C.gris400 }}>
             Licenciatura en Contaduría — Modalidad Virtual
           </p>
+          {/* Visible antes de entregar ningún dato, que es cuando sirve. */}
+          <Link to="/privacidad" className="barra-enlace mt-3 -ml-2 inline-block rounded-md px-2 py-1.5 text-[12px]">
+            Aviso de privacidad
+          </Link>
         </div>
       </aside>
 

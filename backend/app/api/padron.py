@@ -40,8 +40,14 @@ def _antiguedad(registro):
     return (hoy - inicio).days / 365.25
 
 
+def _tramites_de(matricula):
+    usuario = Usuario.query.filter_by(identificador=matricula, rol=Rol.ALUMNO).first()
+    return Tramite.query.filter_by(alumno_id=usuario.id).count() if usuario else 0
+
+
 def _serializar(r):
     anios = _antiguedad(r)
+    tramites = _tramites_de(r.matricula)
     return {
         "id": r.id, "matricula": r.matricula, "nombre": r.nombre,
         "correo": r.correo_institucional, "activado": r.activado,
@@ -49,6 +55,10 @@ def _serializar(r):
         "fecha_ingreso": r.inicio.isoformat(),
         "anios": round(anios, 1),
         "vencido": anios >= _anios_vigencia(),
+        "tramites": tramites,
+        # Solo quien no dejó expediente. La pantalla no decide esto por su
+        # cuenta: la regla vive en el servidor, que es quien la aplica.
+        "eliminable": tramites == 0,
     }
 
 
@@ -244,6 +254,40 @@ def _vencidos():
         consulta = consulta.filter_by(programa_id=current_user.programa_id)
     limite = _anios_vigencia()
     return [r for r in consulta.all() if _antiguedad(r) >= limite]
+
+
+@bp.delete("/<int:registro_id>")
+@rol_requerido(Rol.SECRETARIA, Rol.COORDINADORA)
+def eliminar_alumno(registro_id):
+    """Quita a un alumno del padrón, con la misma regla que la depuración:
+    solo si no hizo trámites.
+
+    Para el alta equivocada —una matrícula mal escrita, un alumno que nunca
+    perteneció al programa— y para limpiar los datos de prueba antes de abrir
+    el sistema. Si ya hizo trámites, su expediente es contabilidad de la
+    facultad y lo que corresponde es darlo de baja, no borrarlo.
+    """
+    registro = db.session.get(PadronAlumno, registro_id)
+    if not registro or (current_user.programa_id
+                        and registro.programa_id != current_user.programa_id):
+        return jsonify({"error": "Alumno no encontrado"}), 404
+
+    usuario = Usuario.query.filter_by(identificador=registro.matricula,
+                                      rol=Rol.ALUMNO).first()
+    tramites = Tramite.query.filter_by(alumno_id=usuario.id).count() if usuario else 0
+    if tramites:
+        raise ErrorDominio(
+            f"{registro.nombre} tiene {tramites} trámite(s) registrados. "
+            "Eliminarlo dejaría folios sin titular: da de baja su cuenta, que "
+            "le quita el acceso y conserva el expediente."
+        )
+
+    nombre = registro.nombre
+    if usuario:
+        db.session.delete(usuario)
+    db.session.delete(registro)
+    db.session.commit()
+    return jsonify({"eliminado": nombre})
 
 
 @bp.get("/depurar")

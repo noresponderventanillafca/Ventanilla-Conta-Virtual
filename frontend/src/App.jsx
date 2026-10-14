@@ -6,6 +6,7 @@ import AvisoInactividad from "./componentes/AvisoInactividad";
 import Acceso from "./paginas/Acceso";
 import Activar from "./paginas/Activar";
 import Restablecer from "./paginas/Restablecer";
+import Privacidad from "./paginas/Privacidad";
 import MisTramites from "./paginas/MisTramites";
 import NuevaSolicitud from "./paginas/NuevaSolicitud";
 import DetalleTramite from "./paginas/DetalleTramite";
@@ -46,6 +47,9 @@ function SoloRol({ roles, children }) {
 const PUBLICAS = {
   "/activar": <Activar />,
   "/restablecer": <Restablecer />,
+  // El aviso de privacidad se lee ANTES de entregar ningún dato, así que no
+  // puede estar detrás del inicio de sesión.
+  "/privacidad": <Privacidad />,
 };
 
 export default function App() {
@@ -101,6 +105,7 @@ export default function App() {
       <Route path="/padron" element={
         <SoloRol roles={["secretaria", "coordinadora"]}><Padron /></SoloRol>} />
       <Route path="/password" element={<CambiarPassword />} />
+      <Route path="/privacidad" element={<Privacidad />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </>

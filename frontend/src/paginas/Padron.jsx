@@ -18,6 +18,7 @@ export default function Padron() {
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState(null);
   const [vista, setVista] = useState(null);
+  const [porBorrar, setPorBorrar] = useState(null);
 
   const recargar = () => api.padron().then(setDatos).catch((e) => setError(e.message));
   useEffect(() => { recargar(); }, []);
@@ -79,8 +80,8 @@ export default function Padron() {
               <table className="w-full min-w-[720px] border-collapse">
                 <thead>
                   <tr style={{ background: C.gris100 }}>
-                    {["Matrícula", "Nombre", "Correo", "Ingreso", "Antigüedad", "Cuenta"].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold"
+                    {["Matrícula", "Nombre", "Correo", "Ingreso", "Antigüedad", "Cuenta", ""].map((h, i) => (
+                      <th key={h || i} className="px-4 py-3 text-left text-[11px] font-semibold"
                           style={{ color: C.gris500 }}>{h}</th>
                     ))}
                   </tr>
@@ -106,6 +107,37 @@ export default function Padron() {
                           style={{ color: a.dado_de_baja ? C.gris400
                                          : a.activado ? C.verde600 : C.gris400 }}>
                         {a.dado_de_baja ? "Dado de baja" : a.activado ? "Activa" : "Sin activar"}
+                      </td>
+                      {/* Solo para quien no dejó expediente: el servidor marca
+                          «eliminable» y aquí únicamente se obedece. */}
+                      <td className="px-4 py-3">
+                        {puedeRegistrar && a.eliminable && (
+                          porBorrar === a.id ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="whitespace-nowrap text-[11px]" style={{ color: C.rojo600 }}>
+                                ¿Eliminar a {a.nombre}?
+                              </span>
+                              <Boton variante="peligro" tamano="sm"
+                                     onClick={async () => {
+                                       setPorBorrar(null);
+                                       setError(null);
+                                       try { await api.eliminarAlumno(a.id); await recargar(); }
+                                       catch (e) { setError(e.message); }
+                                     }}>
+                                Sí
+                              </Boton>
+                              <Boton variante="neutro" tamano="sm" onClick={() => setPorBorrar(null)}>
+                                No
+                              </Boton>
+                            </div>
+                          ) : (
+                            <div className="flex justify-end">
+                              <Boton variante="peligro" tamano="sm" onClick={() => setPorBorrar(a.id)}>
+                                <Trash2 size={13} /> Eliminar
+                              </Boton>
+                            </div>
+                          )
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -319,7 +351,7 @@ function Depuracion({ anios, vencidos, onHecho }) {
                 <thead>
                   <tr style={{ background: C.gris100 }}>
                     {["Matrícula", "Nombre", "Antigüedad", "Trámites", "Qué pasa"].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold"
+                      <th key={h || i} className="px-4 py-3 text-left text-[11px] font-semibold"
                           style={{ color: C.gris500 }}>{h}</th>
                     ))}
                   </tr>

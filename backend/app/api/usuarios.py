@@ -54,7 +54,19 @@ def _serializar(u):
         "debe_cambiar_password": u.debe_cambiar_password,
         "acciones": db.session.query(Evento.id).filter_by(autor_id=u.id).count(),
         "creado_en": u.creado_en.isoformat() if u.creado_en else None,
+        # Lo calcula el servidor y no la pantalla: la regla de qué se puede
+        # borrar es la misma que aplica el endpoint, y tenerla en dos sitios
+        # es tenerla mal en uno de los dos.
+        "eliminable": _es_eliminable(u),
     }
+
+
+def _es_eliminable(u):
+    if u.id == current_user.id:
+        return False
+    if u.rol == Rol.COORDINADORA and u.activo and _activos_con_rol(Rol.COORDINADORA) <= 1:
+        return False
+    return not any(_rastro(u).values())
 
 
 @bp.get("")
@@ -163,6 +175,71 @@ def cambiar_activo(usuario_id):
     usuario.activo = activo
     db.session.commit()
     return jsonify(_serializar(usuario))
+
+
+def _rastro(usuario):
+    """Dónde quedó constancia de lo que hizo esta persona.
+
+    Son las cinco tablas que apuntan a un usuario. Si alguna lo menciona, su
+    nombre sostiene un registro que alguien podría tener que aclarar años
+    después, y borrarlo dejaría un hueco. Esa persona se da de baja, no se
+    elimina.
+    """
+    from ..models import Evento, Tramite, Archivo, Pago, CuentaInstitucional
+
+    return {
+        "movimientos en la bitácora":
+            Evento.query.filter_by(autor_id=usuario.id).count(),
+        "trámites a su nombre":
+            Tramite.query.filter_by(alumno_id=usuario.id).count(),
+        "archivos que subió":
+            Archivo.query.filter_by(subido_por_id=usuario.id).count(),
+        "pagos que validó":
+            Pago.query.filter_by(validado_por_id=usuario.id).count(),
+        "cambios a la cuenta de depósito":
+            CuentaInstitucional.query.filter_by(actualizado_por_id=usuario.id).count(),
+    }
+
+
+@bp.delete("/<int:usuario_id>")
+@rol_requerido(Rol.COORDINADORA)
+def eliminar(usuario_id):
+    """Borrado definitivo, solo para cuentas que nunca actuaron.
+
+    Existe para las cuentas de prueba y para el alta equivocada que se detecta
+    el mismo día: darlas de baja las deja en la lista para siempre, y una lista
+    llena de gente que nunca existió es una lista que nadie lee.
+
+    En cuanto una cuenta toca un trámite deja de ser elegible. La bitácora es
+    el único registro de quién hizo qué, y un evento sin autor no se puede
+    aclarar.
+    """
+    usuario = _obtener(usuario_id)
+    if usuario is None:
+        return jsonify({"error": "Persona no encontrada"}), 404
+
+    if usuario.id == current_user.id:
+        raise ErrorDominio("No puedes eliminar tu propia cuenta.")
+    if (usuario.rol == Rol.COORDINADORA
+            and _activos_con_rol(Rol.COORDINADORA) <= 1 and usuario.activo):
+        raise ErrorDominio(
+            "Es la única coordinación activa. Si la eliminas, nadie podrá "
+            "administrar el sistema."
+        )
+
+    rastro = {k: v for k, v in _rastro(usuario).items() if v}
+    if rastro:
+        detalle = ", ".join(f"{v} {k}" for k, v in rastro.items())
+        raise ErrorDominio(
+            f"{usuario.nombre} ya dejó constancia en el sistema ({detalle}). "
+            "No se puede eliminar sin romper la bitácora: dale de baja, que le "
+            "quita el acceso y conserva el historial."
+        )
+
+    nombre = usuario.nombre
+    db.session.delete(usuario)
+    db.session.commit()
+    return jsonify({"eliminado": nombre})
 
 
 @bp.post("/<int:usuario_id>/password")

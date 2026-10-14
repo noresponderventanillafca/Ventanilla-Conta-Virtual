@@ -1,4 +1,4 @@
-# Ventanilla Virtual — Contaduría Virtual, FCA UV 
+# Ventanilla Virtual — Contaduría Virtual, FCA UV
 
 Portal de solicitud y seguimiento de documentos escolares. Sustituye la cadena
 de correos entre alumno, Secretaría, Administración y Coordinación por un

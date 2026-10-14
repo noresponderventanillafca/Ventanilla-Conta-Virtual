@@ -81,6 +81,7 @@ export const api = {
   editarUsuario: (id, datos) => json(`/usuarios/${id}`, datos, "PUT"),
   activarUsuario: (id, activo) => json(`/usuarios/${id}/activo`, { activo }),
   reiniciarPassword: (id) => json(`/usuarios/${id}/password`),
+  eliminarUsuario: (id) => peticion(`/usuarios/${id}`, { method: "DELETE" }),
 
   // Trámites
   listar: () => peticion("/tramites"),
@@ -101,6 +102,7 @@ export const api = {
   // Padrón
   padron: () => peticion("/padron"),
   agregarAlumno: (datos) => json("/padron", datos),
+  eliminarAlumno: (id) => peticion(`/padron/${id}`, { method: "DELETE" }),
   cargarPadron: (archivo) => formulario("/padron/cargar", { archivo }),
   revisarDepuracion: () => peticion("/padron/depurar"),
   depurarPadron: () => json("/padron/depurar", { confirmar: true }),

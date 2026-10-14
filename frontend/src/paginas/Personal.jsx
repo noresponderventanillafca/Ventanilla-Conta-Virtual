@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Pencil, KeyRound, Copy, Check } from "lucide-react";
+import { Plus, Pencil, KeyRound, Copy, Check, Trash2 } from "lucide-react";
 
 import { C } from "../tokens";
 import { api } from "../api/cliente";
@@ -78,7 +78,8 @@ export default function Personal() {
                    onPassword={async (p) => {
                      const r = await accion(() => api.reiniciarPassword(p.id));
                      if (r) setCredencial(r);
-                   }} />
+                   }}
+                   onEliminar={(p) => accion(() => api.eliminarUsuario(p.id))} />
           </Card>
         )}
       </div>
@@ -121,7 +122,9 @@ function Credencial({ credencial, onCerrar }) {
   );
 }
 
-function Tabla({ personas, yo, onEditar, onActivo, onPassword }) {
+function Tabla({ personas, yo, onEditar, onActivo, onPassword, onEliminar }) {
+  const [confirmando, setConfirmando] = useState(null);
+
   const NOMBRE_ROL = Object.fromEntries(ROLES.map(([v, n]) => [v, n]));
   return (
     <div className="overflow-x-auto">
@@ -154,17 +157,43 @@ function Tabla({ personas, yo, onEditar, onActivo, onPassword }) {
                 )}
               </td>
               <td className="px-4 py-3.5">
-                <div className="flex justify-end gap-2">
-                  <Boton variante="secundario" tamano="sm" onClick={() => onEditar(p)}>
-                    <Pencil size={13} /> Editar
-                  </Boton>
-                  <Boton variante="neutro" tamano="sm" onClick={() => onPassword(p)}>
-                    <KeyRound size={13} /> Contraseña
-                  </Boton>
-                  <Boton variante="neutro" tamano="sm" onClick={() => onActivo(p)}>
-                    {p.activo ? "Dar de baja" : "Reactivar"}
-                  </Boton>
-                </div>
+                {/* Eliminar no se puede deshacer, así que pide confirmación en
+                    la propia fila: un diálogo del navegador se cierra sin leer
+                    y no deja ver de quién se trata. */}
+                {confirmando === p.id ? (
+                  <div className="flex items-center justify-end gap-2">
+                    <span className="text-[12px]" style={{ color: C.rojo600 }}>
+                      ¿Eliminar a {p.nombre}? No se puede deshacer.
+                    </span>
+                    <Boton variante="peligro" tamano="sm"
+                           onClick={() => { setConfirmando(null); onEliminar(p); }}>
+                      Sí, eliminar
+                    </Boton>
+                    <Boton variante="neutro" tamano="sm" onClick={() => setConfirmando(null)}>
+                      Cancelar
+                    </Boton>
+                  </div>
+                ) : (
+                  <div className="flex justify-end gap-2">
+                    <Boton variante="secundario" tamano="sm" onClick={() => onEditar(p)}>
+                      <Pencil size={13} /> Editar
+                    </Boton>
+                    <Boton variante="neutro" tamano="sm" onClick={() => onPassword(p)}>
+                      <KeyRound size={13} /> Contraseña
+                    </Boton>
+                    <Boton variante="neutro" tamano="sm" onClick={() => onActivo(p)}>
+                      {p.activo ? "Dar de baja" : "Reactivar"}
+                    </Boton>
+                    {/* Solo aparece en cuentas sin rastro. El servidor decide
+                        quién lo es; aquí únicamente se obedece. */}
+                    {p.eliminable && (
+                      <Boton variante="peligro" tamano="sm"
+                             onClick={() => setConfirmando(p.id)}>
+                        <Trash2 size={13} /> Eliminar
+                      </Boton>
+                    )}
+                  </div>
+                )}
               </td>
             </tr>
           ))}

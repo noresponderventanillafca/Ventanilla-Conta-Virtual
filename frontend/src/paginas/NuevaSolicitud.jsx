@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, AlertTriangle, Upload, Copy } from "lucide-react";
 
 import { C, pesos } from "../tokens";
 import { api } from "../api/cliente";
 import Marco from "../componentes/Marco";
 import { Card, Campo, Boton, BotonEnlace, Aviso, MensajeError, Cargando, estiloInput } from "../componentes/ui";
+import { SIMPLIFICADO } from "../contenido/avisoPrivacidad";
 
 /* Un documento por solicitud: Administración emite un recibo por cada uno,
    así que dos constancias son dos solicitudes con dos depósitos distintos.
@@ -231,6 +232,19 @@ export default function NuevaSolicitud() {
         )}
 
         <MensajeError>{error}</MensajeError>
+
+        {/* El aviso simplificado va donde se entregan los datos —aquí se sube
+            un comprobante bancario y se escribe texto libre—, no escondido en
+            un pie de página. Es el momento en que la ley pide informar. */}
+        <div className="rounded-lg px-4 py-3.5" style={{ background: C.gris100 }}>
+          <p className="text-[12px] leading-relaxed" style={{ color: C.gris500 }}>
+            {SIMPLIFICADO.parrafos[1]}{" "}
+            <Link to="/privacidad" className="underline underline-offset-2"
+                  style={{ color: C.azul700 }}>
+              Consulta el aviso de privacidad
+            </Link>.
+          </p>
+        </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <Boton onClick={enviar} disabled={enviando || !tipo}>
