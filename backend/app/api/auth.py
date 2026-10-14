@@ -92,6 +92,18 @@ def confirmar_activacion():
     if not registro or registro.activado or registro.dado_de_baja:
         return jsonify({"error": "Esta cuenta ya fue activada."}), 400
 
+    # Red de seguridad por si la matrícula ya la ocupa alguien del personal.
+    # El alta lo impide en los dos sentidos, pero una coincidencia creada antes
+    # de que existiera esa comprobación reventaría aquí con un error de base de
+    # datos, y el alumno solo vería «Ocurrió un error».
+    ocupado = Usuario.query.filter_by(identificador=registro.matricula).first()
+    if ocupado:
+        return jsonify({
+            "error": "Tu matrícula ya está registrada como usuario de otra "
+                     "persona en el sistema. Avisa a la Coordinación: hay que "
+                     "corregirlo antes de que puedas activar tu cuenta.",
+        }), 409
+
     usuario = Usuario(
         identificador=registro.matricula,
         nombre=registro.nombre,

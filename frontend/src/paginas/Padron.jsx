@@ -171,8 +171,8 @@ function AltaIndividual({ onCancelar, onGuardado }) {
     <Card title="Agregar un alumno">
       <div className="space-y-4 px-5 py-5">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Campo label="Matrícula">
-            <input value={d.matricula} placeholder="S26001234"
+          <Campo label="Matrícula" ayuda="La letra S y ocho dígitos.">
+            <input value={d.matricula} placeholder="S26001234" maxLength={9}
                    onChange={(e) => setD({ ...d, matricula: e.target.value.toUpperCase() })}
                    className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px] uppercase"
                    style={estiloInput} />

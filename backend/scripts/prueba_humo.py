@@ -261,9 +261,20 @@ def main():
         fallos.append(("debe devolver una contraseña temporal", str(creado)))
     else:
         print(f"       contraseña temporal entregada una sola vez")
-    chk("usuario con números se rechaza", cliente.post("/api/usuarios", json={
-        "identificador": "SEC123", "nombre": "X", "correo": "x@uv.mx",
+    # El personal sí puede llevar números; lo que no puede es coincidir con una
+    # matrícula, porque alumnos y personal comparten la columna de identificador.
+    chk("usuario con números se acepta", cliente.post("/api/usuarios", json={
+        "identificador": "SEC123", "nombre": "Con Números", "correo": "sec123@uv.mx",
+        "rol": "secretaria"}), 201)
+    chk("usuario con espacios se rechaza", cliente.post("/api/usuarios", json={
+        "identificador": "CON ESPACIO", "nombre": "X", "correo": "x@uv.mx",
         "rol": "secretaria"}), 400)
+    chk("usuario con forma de matrícula se rechaza", cliente.post("/api/usuarios", json={
+        "identificador": "S30001111", "nombre": "X", "correo": "x@uv.mx",
+        "rol": "secretaria"}), 400)
+    chk("matrícula mal formada se rechaza", cliente.post("/api/padron", json={
+        "matricula": "26008888", "curp_prefijo": "XXXX010101",
+        "nombre": "Mal", "correo_institucional": "m@uv.mx"}), 400)
     chk("usuario repetido se rechaza", cliente.post("/api/usuarios", json={
         "identificador": "MENDOZAAP", "nombre": "Otra", "correo": "o@uv.mx",
         "rol": "secretaria"}), 400)

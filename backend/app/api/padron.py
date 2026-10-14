@@ -16,6 +16,7 @@ from ..extensions import db
 from ..models import PadronAlumno, Usuario, Rol, Tramite, Archivo, Evento, TipoEvento
 from ..seguridad import rol_requerido
 from ..dominio.servicios import ErrorDominio
+from ..dominio.identificadores import motivo_matricula_invalida
 from ..almacenamiento import borrar
 
 bp = Blueprint("padron", __name__)
@@ -105,10 +106,29 @@ def _leer_fecha(valor):
 def _validar(matricula, curp, nombre, correo):
     if not matricula or not nombre or not correo:
         raise ErrorDominio("Matrícula, nombre y correo son obligatorios.")
+
+    # La matrícula de la UV es S + ocho dígitos. Comprobar la forma importa
+    # sobre todo en la carga masiva: una matrícula mal capturada en la hoja de
+    # cálculo crea un registro que parece correcto, y el error solo aparece
+    # cuando ese alumno intenta activar su cuenta y el sistema no lo encuentra.
+    motivo = motivo_matricula_invalida(matricula)
+    if motivo:
+        raise ErrorDominio(motivo)
+
     if len(curp) != 10:
         raise ErrorDominio("El prefijo de CURP debe tener exactamente 10 caracteres.")
     if "@" not in correo:
         raise ErrorDominio("El correo institucional no es válido.")
+
+    # Red de seguridad: con la forma de matrícula reservada, el personal ya no
+    # puede ocupar una. Esto cubre las cuentas creadas antes de esa regla.
+    del_personal = Usuario.query.filter_by(identificador=matricula).first()
+    if del_personal and del_personal.rol != Rol.ALUMNO:
+        raise ErrorDominio(
+            f"«{matricula}» ya es el usuario de {del_personal.nombre}, del "
+            "personal. Cambia uno de los dos: si coinciden, este alumno no "
+            "podrá activar su cuenta."
+        )
 
 
 @bp.post("")

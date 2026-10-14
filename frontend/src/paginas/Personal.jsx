@@ -225,7 +225,7 @@ function Formulario({ inicial, onCancelar, onGuardado }) {
                    className="campo-texto w-full rounded-md px-3 py-2.5 text-[13px]" style={estiloInput} />
           </Campo>
           <Campo label="Usuario"
-                 ayuda="Solo letras, sin números ni espacios. Es con lo que inicia sesión.">
+                 ayuda="Letras o números, sin espacios ni acentos. No puede tener forma de matrícula (S y ocho dígitos), que está reservada para los alumnos.">
             <input value={d.identificador} maxLength={20}
                    onChange={(e) => setD({ ...d, identificador: e.target.value.toUpperCase() })}
                    placeholder="MENDOZAAP"

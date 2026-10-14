@@ -9,7 +9,6 @@ Relevar un cargo es dar de baja a una persona y dar de alta a otra. El rol se
 transfiere; la cuenta no.
 """
 
-import re
 import secrets
 import string
 
@@ -20,15 +19,25 @@ from ..extensions import db
 from ..models import Usuario, Rol, Evento
 from ..seguridad import rol_requerido
 from ..dominio.servicios import ErrorDominio
+from ..dominio.identificadores import motivo_identificador_invalido
 
 bp = Blueprint("usuarios", __name__)
 
 ROLES_PERSONAL = [Rol.SECRETARIA, Rol.ADMINISTRADOR, Rol.COORDINADORA]
 
-# Solo letras. Los alumnos entran con matrícula, que lleva dígitos, así que
-# esta regla garantiza además que un usuario de personal nunca colisione con
-# la matrícula de un estudiante.
-PATRON_IDENTIFICADOR = re.compile(r"^[A-ZÑ]{2,20}$")
+
+
+
+def _choca_con_el_padron(identificador):
+    """¿Ese usuario es la matrícula de algún alumno?
+
+    Segunda red. La primera es la forma: un usuario con forma de matrícula ya
+    se rechaza sin consultar nada, lo que cubre incluso al alumno que todavía
+    no está dado de alta. Esto atrapa lo que quede fuera de esa forma, por si
+    algún día aparece una matrícula con otro formato.
+    """
+    from ..models import PadronAlumno
+    return PadronAlumno.query.filter_by(matricula=identificador).first() is not None
 
 
 @bp.errorhandler(ErrorDominio)
@@ -89,9 +98,13 @@ def _leer(datos, usuario=None):
 
     if not nombre:
         raise ErrorDominio("Escribe el nombre completo de la persona.")
-    if not PATRON_IDENTIFICADOR.match(identificador):
+    motivo = motivo_identificador_invalido(identificador)
+    if motivo:
+        raise ErrorDominio(motivo)
+    if _choca_con_el_padron(identificador):
         raise ErrorDominio(
-            "El usuario debe tener entre 2 y 20 letras, sin números, espacios ni acentos."
+            f"«{identificador}» ya está en el padrón de alumnos. Elige otro: "
+            "si coincidieran, ese alumno no podría activar su cuenta."
         )
     if "@" not in correo:
         raise ErrorDominio("Escribe un correo válido: ahí llegan las notificaciones.")
