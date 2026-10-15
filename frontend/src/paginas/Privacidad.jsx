@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { C } from "../tokens";
 import { useSesion } from "../sesion";
 import Marco from "../componentes/Marco";
-import MarcoAcceso from "../componentes/MarcoAcceso";
 import { Boton } from "../componentes/ui";
 import { INTEGRAL, RESPONSABLE, ACTUALIZADO } from "../contenido/avisoPrivacidad";
 
@@ -15,7 +14,6 @@ import { INTEGRAL, RESPONSABLE, ACTUALIZADO } from "../contenido/avisoPrivacidad
 
 export default function Privacidad() {
   const { usuario } = useSesion();
-  const Envoltura = usuario ? Marco : MarcoAcceso;
 
   const contenido = (
     <article className="space-y-7">
@@ -87,7 +85,7 @@ export default function Privacidad() {
   );
 
   if (usuario)
-    return <Envoltura><div className="max-w-3xl">{contenido}</div></Envoltura>;
+    return <Marco><div className="max-w-3xl">{contenido}</div></Marco>;
 
   // Sin sesión se reutiliza el marco de acceso, pero más ancho: el aviso es un
   // documento para leer, no una tarjeta de formulario.

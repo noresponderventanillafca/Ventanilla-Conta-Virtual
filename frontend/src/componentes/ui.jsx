@@ -98,6 +98,14 @@ const ESTILOS_BOTON = {
     "--btn-bg-hover": C.rojo100, "--btn-bd-hover": C.rojo600,
     "--btn-bg-active": C.rojo200,
   },
+  /* Acción secundaria con aspecto de enlace. Sigue siendo <button> —cambia el
+     estado de la pantalla, no navega— pero sin peso visual, para que «Entrar»
+     siga siendo lo único que destaca. */
+  enlace: {
+    "--btn-bg": "transparent", "--btn-fg": C.azul700, "--btn-bd": "transparent",
+    "--btn-bg-hover": C.azul100, "--btn-bd-hover": "transparent",
+    "--btn-bg-active": C.azul200,
+  },
 };
 
 /* Un botón deshabilitado no debe reaccionar: si cambiara al pasar el puntero

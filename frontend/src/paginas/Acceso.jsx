@@ -101,7 +101,8 @@ function FormLogin({ entrar, irActivar, irOlvide }) {
         {cargando ? "Entrando…" : "Entrar"}
       </Boton>
 
-      <Boton type="button" variante="neutro" onClick={irOlvide} className="w-full">
+      <Boton type="button" variante="enlace" onClick={irOlvide}
+             className="-ml-4 min-h-[44px] self-start underline underline-offset-[3px]">
         ¿Olvidaste tu contraseña?
       </Boton>
 
@@ -113,7 +114,7 @@ function FormLogin({ entrar, irActivar, irOlvide }) {
           Activa tu cuenta con tu matrícula y los primeros 10 caracteres de tu CURP.
           Te enviaremos un enlace a tu correo institucional para que definas tu contraseña.
         </p>
-        <Boton type="button" variante="secundario" onClick={irActivar} className="w-full">
+        <Boton type="button" variante="secundario" onClick={irActivar}>
           Activar mi cuenta
         </Boton>
       </div>
@@ -174,7 +175,8 @@ function FormActivar({ irLogin }) {
       <Boton type="submit" disabled={enviando} className="w-full">
         {enviando ? "Comprobando…" : "Enviarme el enlace"}
       </Boton>
-      <Boton type="button" variante="neutro" onClick={irLogin} className="w-full">
+      <Boton type="button" variante="enlace" onClick={irLogin}
+             className="-ml-4 min-h-[44px] self-start underline underline-offset-[3px]">
         Volver a iniciar sesión
       </Boton>
     </form>
@@ -227,7 +229,8 @@ function FormOlvide({ irLogin }) {
       <Boton type="submit" disabled={enviando} className="w-full">
         {enviando ? "Enviando…" : "Enviar enlace"}
       </Boton>
-      <Boton type="button" variante="neutro" onClick={irLogin} className="w-full">
+      <Boton type="button" variante="enlace" onClick={irLogin}
+             className="-ml-4 min-h-[44px] self-start underline underline-offset-[3px]">
         Volver a iniciar sesión
       </Boton>
     </form>
@@ -274,7 +277,8 @@ function RevisaTuCorreo({ mensaje, token, ruta, irLogin }) {
         </div>
       )}
 
-      <Boton variante="neutro" onClick={irLogin} className="w-full">
+      <Boton variante="enlace" onClick={irLogin}
+             className="-ml-4 min-h-[44px] self-start underline underline-offset-[3px]">
         Volver a iniciar sesión
       </Boton>
     </div>

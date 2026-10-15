@@ -16,15 +16,34 @@
 */
 
 export const C = {
-  // Identidad
-  azul900: "#00335F",
-  azul700: "#004B8D",
-  azul500: "#1C6FB5",
+  /* Identidad — tomada del manual oficial de la UV
+     (comunicacionuv/T130-Color-institucionales.pdf):
+
+       Azul  #18529D  · Pantone 2728 C · «siempre será el contenedor»
+       Verde #28AD56  · Pantone 355 C  · representa el área administrativa
+       Blanco y negro completan la paleta.
+
+     Antes se usaba un azul más oscuro que no venía del manual. azul700 es
+     ahora el institucional exacto y manda en botones, enlaces y acentos;
+     azul900 y azul950 son solo sombras suyas para superficies profundas y
+     para el momento del clic, que una sola tinta no puede expresar. */
+  azul700: "#18529D",
+  azul900: "#113D76",
+  azul950: "#0A2A52",
+  azul500: "#4C86C6",
   azul200: "#C9DEF2",
-  azul100: "#E4EEF8",
-  // Solo para el momento en que se pulsa un botón azul. Más oscuro que
-  // azul900 a propósito: si fuera igual, el clic no se notaría.
-  azul950: "#00264A",
+  azul100: "#E6EEF8",
+
+  /* El verde institucional. Deliberadamente SEPARADO de verde600, que en el
+     semáforo significa «concluido»: si fueran el mismo tono, el color dejaría
+     de informar y pasaría a ser decoración. Este vive en la marca —la regla
+     del acceso, los acentos— y nunca en una píldora de estado. */
+  verdeUV: "#28AD56",
+
+  /* Cian y amarillo NO están en el manual: vienen de la franja de chevrones.
+     Se conservan porque esa franja es parte de la identidad que ya estaba en
+     uso, pero si Comunicación Universitaria pide apego estricto, es lo
+     primero que habría que retirar. */
   cian: "#00BECD",
   cianClaro: "#E0F7F9",
   amarillo: "#FFC415",
